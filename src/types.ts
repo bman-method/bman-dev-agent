@@ -19,3 +19,14 @@ export interface TaskTracker {
   markBlocked(tasks: Task[], taskId: string, reason: string, commitSha?: string): Task[];
   saveTasks(tasks: Task[]): void;
 }
+
+export interface RunContext {
+  runId: string;
+  taskId: string;
+  attempt: number;
+  outputPath: string;
+}
+
+export interface RunContextFactory {
+  create(task: Task, attempt: number, config: Config): RunContext;
+}
