@@ -30,3 +30,13 @@ export interface RunContext {
 export interface RunContextFactory {
   create(task: Task, attempt: number, config: Config): RunContext;
 }
+
+export interface OutputContract {
+  fields: OutputContractField[];
+}
+
+export interface OutputContractField {
+  name: string;
+  descriptionOfContent: string;
+  maxLines?: number;
+}
