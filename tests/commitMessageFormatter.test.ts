@@ -27,7 +27,7 @@ describe("DefaultCommitMessageFormatter", () => {
     );
   });
 
-  it("prefixes status in title for non-success and falls back to task title", () => {
+  it("prefixes status in title for non-success and falls back to status reason", () => {
     const output: AgentOutput = {
       taskId: task.id,
       status: "blocked",
@@ -35,9 +35,31 @@ describe("DefaultCommitMessageFormatter", () => {
       aiThoughts: "",
     };
 
-    expect(formatter.formatTitle(task, output)).toBe("[blocked] TASK-1 - Implement feature");
+    expect(formatter.formatTitle(task, output)).toBe("[blocked] TASK-1 - Task ended with status: blocked");
     expect(formatter.formatBody(task, output)).toBe(
-      ["Task: TASK-1 - Implement feature", "Message: Implement feature"].join("\n")
+      ["Task: TASK-1 - Implement feature", "Message: Task ended with status: blocked"].join("\n")
+    );
+  });
+
+  it("uses aiThoughts as fallback reason when commitMessage is empty", () => {
+    const output: AgentOutput = {
+      taskId: task.id,
+      status: "failed",
+      commitMessage: "",
+      aiThoughts: "Blocked on DB migration\nInvestigating rollout",
+    };
+
+    expect(formatter.formatTitle(task, output)).toBe(
+      "[failed] TASK-1 - Blocked on DB migration Investigating rollout"
+    );
+    expect(formatter.formatBody(task, output)).toBe(
+      [
+        "Task: TASK-1 - Implement feature",
+        "Message: Blocked on DB migration\nInvestigating rollout",
+        "---",
+        "AI Thoughts:",
+        "Blocked on DB migration\nInvestigating rollout",
+      ].join("\n")
     );
   });
 });

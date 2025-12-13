@@ -76,7 +76,7 @@ Read bman-method.md and enhance readme.md to specify how this tool aligns with t
 - [x] TASK-19: Stop when blocked tasks exist
 If any task in the tracker is blocked, the CLI should refuse to start new work and exit non-zero, telling the human to resolve the block first.
 
-- [ ] TASK-20: Ensure blocked/failure reasons land in commit info
+- [x] TASK-20: Ensure blocked/failure reasons land in commit info
 Normalize/propagate the blocked/failure reason into the commit title/body so the “why” is preserved even when the agent omits it.
 
 - [ ] TASK-21: Remove unused designFile config

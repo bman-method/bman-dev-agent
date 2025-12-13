@@ -7,6 +7,7 @@ import {
   Task,
   TaskTrackerDocument,
 } from "./types";
+import { deriveHumanMessage } from "./commitMessageFormatter";
 
 export class OrchestratorError extends Error {}
 
@@ -128,7 +129,7 @@ export class DefaultOrchestrator implements Orchestrator {
       return taskTracker.markDone(trackerDocument.tasks, task.id, commitSha ?? "");
     }
 
-    const reason = (output.commitMessage || "").trim() || `Task ended with status: ${output.status}`;
+    const reason = deriveHumanMessage(task, output);
     return taskTracker.markBlocked(trackerDocument.tasks, task.id, reason, commitSha);
   }
 }
