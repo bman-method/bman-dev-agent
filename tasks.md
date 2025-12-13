@@ -37,6 +37,13 @@ Instructions:
 
 - [ ] TASK-11: Config Loader
   Load configuration, apply defaults, and validate required fields (agent, tasksFile, designFile?, outputDir).
+   Note that:
+     * The only supported agent is "Codex" (for v0)
+     * Codex is the default agent
+     * Config file location is: .bman/config.json
+     * Default output dir is .bman/output 
+     * Make sure the loader creates those folders if they don't exist (.bman and .bman/output)
+
 
 - [ ] TASK-12: Orchestrator
   Implement orchestrator per design, using refactored task tracker document and prompt strategy.
