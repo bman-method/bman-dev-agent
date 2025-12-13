@@ -104,3 +104,51 @@ Make sure that during this task you also run the auto fix, and if it fails, fix 
 
 - [x] TASK-26: Refactor: Do not execute git command in taskFile.ts. The only component that allowed to run git is the GitOps.ts. I think its better to make the orchestrator to pass the current branch name to the config loader and it will pass to getDefaultTasksFilePath function.
 In addition, please remove the BMAN_BRANCH fallback. You can add start up validation in the CLI that git is available and that it's possible to get the current branch name. If not, then exit with an error message and non 0 exit code.
+
+- [ ] TASK-27: Improve readability of commit messages
+Currently, the commit messages don't look good and have duplications. I think that part of the reason for that is that the commit formatter is returning 2 different fields, one for the title and another for the body, while the contract with the LLM makes it create a single commit message that has title and body already. You can explore the commits in this branch and see what I mean.
+Anyway, the required format is:
+
+TASK-XX [completed/blocked]: <commitMessage from agent output which includes title 
+
+and body>
+
+---
+
+<AI thouhgts> - Leave it as is - looks ok.
+
+⚠️ AI-GENERATED COMMIT. <--- Additional warning at the bottom of the commit body
+
+This change was produced by an AI agent and has NOT been reviewed or validated by a human.
+Do not assume correctness, completeness, or production readiness.
+
+Human review is required.
+
+Example:
+
+```
+TASK-26[completed]: Route branch resolution through GitOps 
+
+Centralize branch lookup in GitOps and pass it into config. Remove BMAN_BRANCH fallback and validate git availability early.
+
+---
+
+AI Thoughts
+-----------
+Changes made: - Moved branch resolution into DefaultGitOps and removed git calls from tasksFile.
+- Config loader now requires a branch for default tasks path, and orchestrator passes branchName through deps.
+- CLI validates git availability/branch upfront and threads branchName into config loading and task tracking.
+- Added coverage for branch requirement and updated mocks for the new interfaces.
+Assumptions: - Git is available when running the CLI.
+Decisions taken: - Kept detached HEAD fallback via short SHA while removing BMAN_BRANCH env usage.
+- Let the CLI own branch validation to keep git commands within GitOps.
+Points of unclarity: None
+Tests run: - npm test
+
+⚠️ AI-GENERATED COMMIT. <--- Additional warning at the bottom of the commit body
+
+This change was produced by an AI agent and has NOT been reviewed or validated by a human.
+Do not assume correctness, completeness, or production readiness.
+
+Human review is required.
+```
