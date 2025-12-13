@@ -41,7 +41,7 @@ function toStatusLabel(status: AgentOutput["status"]): "completed" | "blocked" {
 }
 
 const AI_COMMIT_WARNING = [
-  "⚠️ AI-GENERATED COMMIT. <--- Additional warning at the bottom of the commit body",
+  "⚠️ AI-GENERATED COMMIT.",
   "",
   "This change was produced by an AI agent and has NOT been reviewed or validated by a human.",
   "Do not assume correctness, completeness, or production readiness.",
