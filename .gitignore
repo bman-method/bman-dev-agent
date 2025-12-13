@@ -3,3 +3,4 @@ dist
 coverage
 tests/**/*.js
 tests/**/*.js.map
+.bman/
