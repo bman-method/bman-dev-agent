@@ -64,7 +64,7 @@ And the console log should indicate that codex is running and writing the logs t
 (show the actual location)
 I believe that this should be implemented in the CodexAgent class because its codex specific.
 
-- [ ] TASK-16: Commit guidelines in output contract
+- [x] TASK-16: Commit guidelines in output contract
 Update the output contract commitMessage description (src/outputContract.ts) to include concise commit guidelines (imperative subject ≤50 chars, blank line before body, ~72-char body focusing on what/why).
 
 - [ ] TASK-17: aiThoughts prompt sections

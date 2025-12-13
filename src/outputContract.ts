@@ -13,7 +13,8 @@ export const DefaultOutputContract: OutputContract = {
     },
     {
       name: "commitMessage",
-      descriptionOfContent: "Human-readable commit message summarizing the change.",
+      descriptionOfContent:
+        "Human-readable commit message; imperative subject <=50 chars, blank line before body, ~72-char body focused on what/why.",
       maxLines: 10,
     },
     {
