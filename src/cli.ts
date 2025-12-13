@@ -17,6 +17,7 @@ import {
   Orchestrator,
   OrchestratorDeps,
   OrchestratorFactory,
+  TaskTrackerDocument,
   TaskTracker,
 } from "./types";
 
@@ -41,13 +42,23 @@ export class DefaultCLI implements CLI {
       throw new Error(`Unsupported agent "${options.agent}". Only "codex" is supported.`);
     }
 
-    const hasOpenTask = this.overrides.orchestrator ? true : this.hasOpenTask();
+    const { configLoader, taskTracker, document } = this.loadTaskContext();
+
+    const hasBlockedTask = document.tasks.some((task) => task.status === "blocked");
+    if (hasBlockedTask) {
+      console.error("Blocked tasks present. Resolve blocked tasks before starting new work.");
+      process.exitCode = 1;
+      return;
+    }
+
+    const hasOpenTask = taskTracker.pickNextTask(document.tasks) !== null;
     if (!hasOpenTask) {
       console.error("No open tasks found. Nothing to run.");
       return;
     }
 
-    const orchestrator = this.overrides.orchestrator ?? this.createOrchestrator();
+    const orchestrator =
+      this.overrides.orchestrator ?? this.createOrchestrator(configLoader, taskTracker);
 
     if (options.all) {
       await orchestrator.runAll();
@@ -57,17 +68,35 @@ export class DefaultCLI implements CLI {
     await orchestrator.runOnce();
   }
 
-  private createOrchestrator(): Orchestrator {
+  private loadTaskContext(): {
+    configLoader: ConfigLoader;
+    taskTracker: TaskTracker;
+    document: TaskTrackerDocument;
+  } {
     const configLoader = this.overrides.configLoader ?? new DefaultConfigLoader();
     const config = configLoader.load();
     configLoader.validate(config);
 
-    const taskTracker =
-      this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
+    const taskTracker = this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
+    const document = taskTracker.loadDocument();
+
+    return { configLoader, taskTracker, document };
+  }
+
+  private createOrchestrator(
+    configLoader?: ConfigLoader,
+    taskTracker?: TaskTracker
+  ): Orchestrator {
+    const resolvedConfigLoader = configLoader ?? this.overrides.configLoader ?? new DefaultConfigLoader();
+    const config = resolvedConfigLoader.load();
+    resolvedConfigLoader.validate(config);
+
+    const resolvedTaskTracker =
+      taskTracker ?? this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
 
     const deps: OrchestratorDeps = {
-      configLoader,
-      taskTracker,
+      configLoader: resolvedConfigLoader,
+      taskTracker: resolvedTaskTracker,
       promptStrategy: new DefaultPromptStrategy(),
       runContextFactory: new DefaultRunContextFactory(),
       contract: DefaultOutputContract,
@@ -80,16 +109,6 @@ export class DefaultCLI implements CLI {
 
     const factory = this.overrides.orchestratorFactory ?? new DefaultOrchestratorFactory();
     return factory.create(deps);
-  }
-
-  private hasOpenTask(): boolean {
-    const configLoader = this.overrides.configLoader ?? new DefaultConfigLoader();
-    const config = configLoader.load();
-    configLoader.validate(config);
-
-    const taskTracker = this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
-    const doc = taskTracker.loadDocument();
-    return taskTracker.pickNextTask(doc.tasks) !== null;
   }
 }
 

@@ -73,7 +73,7 @@ Improve the aiThoughts instructions (prompt/output contract) so the model output
 - [x] TASK-18: README alignment with B-MAN Method
 Read bman-method.md and enhance readme.md to specify how this tool aligns with the method.
 
-- [ ] TASK-19: Stop when blocked tasks exist
+- [x] TASK-19: Stop when blocked tasks exist
 If any task in the tracker is blocked, the CLI should refuse to start new work and exit non-zero, telling the human to resolve the block first.
 
 - [ ] TASK-20: Ensure blocked/failure reasons land in commit info

@@ -1,4 +1,24 @@
 import { DefaultCLI, parseArgs } from "../src/cli";
+import { Task } from "../src/types";
+
+const baseConfig = { agent: "codex", tasksFile: "tasks.md", outputDir: ".out" };
+
+function makeConfigLoader(): { load: jest.Mock; validate: jest.Mock } {
+  return {
+    load: jest.fn(() => ({ ...baseConfig })),
+    validate: jest.fn(),
+  };
+}
+
+function makeTaskTracker(tasks: Task[]) {
+  return {
+    loadDocument: jest.fn(() => ({ preludeText: "", tasks })),
+    pickNextTask: jest.fn((list: Task[]) => list.find((t) => t.status === "open") ?? null),
+    markDone: jest.fn(),
+    markBlocked: jest.fn(),
+    saveDocument: jest.fn(),
+  };
+}
 
 describe("parseArgs", () => {
   it("returns empty options when no flags provided", () => {
@@ -29,8 +49,14 @@ describe("DefaultCLI", () => {
   it("runs runOnce by default", async () => {
     const runOnce = jest.fn().mockResolvedValue(undefined);
     const runAll = jest.fn();
+    const configLoader = makeConfigLoader();
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
     const cli = new DefaultCLI({
       orchestrator: { runOnce, runAll },
+      configLoader,
+      taskTracker,
     });
 
     await cli.run({});
@@ -42,8 +68,14 @@ describe("DefaultCLI", () => {
   it("runs runAll when --all is provided", async () => {
     const runOnce = jest.fn();
     const runAll = jest.fn().mockResolvedValue(undefined);
+    const configLoader = makeConfigLoader();
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
     const cli = new DefaultCLI({
       orchestrator: { runOnce, runAll },
+      configLoader,
+      taskTracker,
     });
 
     await cli.run({ all: true });
@@ -74,20 +106,10 @@ describe("DefaultCLI", () => {
   });
 
   it("prints message when no open tasks", async () => {
-    const configLoader = {
-      load: jest.fn(() => ({ agent: "codex", tasksFile: "tasks.md", outputDir: ".out" })),
-      validate: jest.fn(),
-    };
-    const taskTracker = {
-      loadDocument: jest.fn(() => ({
-        preludeText: "",
-        tasks: [{ id: "T1", title: "t", description: "", status: "done" as const }],
-      })),
-      pickNextTask: jest.fn(() => null),
-      markDone: jest.fn(),
-      markBlocked: jest.fn(),
-      saveDocument: jest.fn(),
-    };
+    const configLoader = makeConfigLoader();
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "t", description: "", status: "done" },
+    ]);
     const orchestratorFactory = { create: jest.fn() };
     const cli = new DefaultCLI({ configLoader, taskTracker, orchestratorFactory });
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
@@ -97,5 +119,35 @@ describe("DefaultCLI", () => {
     expect(spy).toHaveBeenCalledWith("No open tasks found. Nothing to run.");
     expect(orchestratorFactory.create).not.toHaveBeenCalled();
     spy.mockRestore();
+  });
+
+  it("refuses to run when blocked tasks exist", async () => {
+    const runOnce = jest.fn();
+    const runAll = jest.fn();
+    const configLoader = makeConfigLoader();
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Blocked task", description: "", status: "blocked" },
+      { id: "T2", title: "Open task", description: "", status: "open" },
+    ]);
+    const cli = new DefaultCLI({
+      orchestrator: { runOnce, runAll },
+      configLoader,
+      taskTracker,
+    });
+    const originalExitCode = process.exitCode;
+    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      await cli.run({});
+
+      expect(runOnce).not.toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith(
+        "Blocked tasks present. Resolve blocked tasks before starting new work."
+      );
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = originalExitCode;
+      spy.mockRestore();
+    }
   });
 });
