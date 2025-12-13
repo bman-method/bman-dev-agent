@@ -152,8 +152,28 @@ Do not assume correctness, completeness, or production readiness.
 
 Human review is required.
 ```
+- [ ] TASK-28: Enforce types in the contract prompt.
+See: DefaultOutputContract class. It does not strictly requests string format to all the properties.
+Therefore the model sometimes produces the output with string array instead of string.
+I believe that changing the field's record from:
+```
+{
+      name: "aiThoughts.changesMade",
+      descriptionOfContent: "What changed in this task; keep concise but specific.",
+      maxLines: 20,
+}
+```
+To:
+```
+{
+      name: "aiThoughts.changesMade",
+      descriptionOfContent: "(type: string), What changed in this task; keep concise but specific.",
+      maxLines: 20,
+}
+```
+Will do the trick.
 
-- [ ] TASK-28: Improve readme.md
+- [ ] TASK-29: Improve readme.md
 The readme is lacking the description of the workflow with the tool which is:
 * Define tasks in the tasks.md file of the branch
 * Let bman-dev-agent perform those tasks sequentially and produce a detailed commit per task
