@@ -48,10 +48,9 @@ Instructions:
 - [x] TASK-12: Orchestrator
   Implement orchestrator per design, using refactored task tracker document and prompt strategy.
 
-- [ ] TASK-13: CLI Wiring
+- [x] TASK-13: CLI Wiring
   Ship a runnable CLI entry point (bin script) that:
     * Parses minimal flags (run-once default, --all for sequential)
     * Supports optional agent override but only accepts Codex
     * Wires up the orchestrator with default deps and uses config loader defaults
     * Exits non-zero on orchestrator errors
-

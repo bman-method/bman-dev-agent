@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+// Thin wrapper to invoke the compiled CLI entry point.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const cli = require("../dist/cli.js");
+
+if (cli && typeof cli.main === "function") {
+  cli.main();
+} else {
+  console.error("CLI entry point not found. Did you run `npm run build`?");
+  process.exitCode = 1;
+}

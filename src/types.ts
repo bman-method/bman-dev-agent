@@ -121,6 +121,7 @@ export interface OrchestratorFactory {
 export interface CLIOptions {
   all?: boolean;
   agent?: string;
+  help?: boolean;
 }
 
 export interface CLI {

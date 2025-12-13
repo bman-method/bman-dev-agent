@@ -32,7 +32,12 @@ export class DefaultOrchestrator implements Orchestrator {
 
     const trackerDocument = taskTracker.loadDocument();
     const task = taskTracker.pickNextTask(trackerDocument.tasks);
-    if (!task) return;
+    if (!task) {
+      console.log("Orchestrator: no open tasks. Nothing to run.");
+      return;
+    }
+
+    console.log(`Orchestrator: running task ${task.id} - ${task.title}`);
 
     git.ensureCleanWorkingTree();
 
@@ -69,10 +74,13 @@ export class DefaultOrchestrator implements Orchestrator {
 
       commitSha = git.commit(title, body);
       git.push();
+      console.log(`Orchestrator: created commit ${commitSha}`);
 
       const updatedTasks = this.updateTasks(taskTracker, trackerDocument, task, output, commitSha);
       tasksUpdated = true;
       taskTracker.saveDocument({ ...trackerDocument, tasks: updatedTasks });
+
+      console.log(`Orchestrator: task ${task.id} completed with status "${output.status}"`);
 
       if (output.status !== "success") {
         throw new OrchestratorError(
@@ -81,6 +89,7 @@ export class DefaultOrchestrator implements Orchestrator {
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
+      console.error(`Orchestrator: task ${task.id} failed - ${reason}`);
 
       if (!tasksUpdated) {
         try {
@@ -101,6 +110,8 @@ export class DefaultOrchestrator implements Orchestrator {
       const doc = taskTracker.loadDocument();
       const next = taskTracker.pickNextTask(doc.tasks);
       if (!next) return;
+
+      console.log(`Orchestrator: starting task ${next.id} from runAll`);
 
       await this.runOnce();
     }
