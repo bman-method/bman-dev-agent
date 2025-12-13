@@ -1,4 +1,19 @@
-import { AgentOutput, OutputContract, OutputContractField, RawAgentResult, ResultValidator } from "./types";
+import {
+  AiThoughts,
+  AgentOutput,
+  OutputContract,
+  OutputContractField,
+  RawAgentResult,
+  ResultValidator,
+} from "./types";
+
+const AI_THOUGHT_FIELDS: Array<keyof AiThoughts> = [
+  "changesMade",
+  "assumptions",
+  "decisionsTaken",
+  "pointsOfUnclarity",
+  "testsRun",
+];
 
 export class DefaultResultValidator implements ResultValidator {
   validate(raw: RawAgentResult, contract: OutputContract): AgentOutput {
@@ -13,10 +28,12 @@ export class DefaultResultValidator implements ResultValidator {
     const taskId = expectString(obj.taskId, "taskId");
     const status = expectStatus(obj.status);
     const commitMessage = expectString(obj.commitMessage, "commitMessage");
-    const aiThoughts = expectString(obj.aiThoughts, "aiThoughts");
+    const aiThoughts = expectAiThoughts(obj.aiThoughts);
 
     enforceMaxLines(commitMessage, contract, "commitMessage");
-    enforceMaxLines(aiThoughts, contract, "aiThoughts");
+    AI_THOUGHT_FIELDS.forEach((field) =>
+      enforceMaxLines(aiThoughts[field], contract, `aiThoughts.${field}`)
+    );
 
     return { taskId, status, commitMessage, aiThoughts };
   }
@@ -24,10 +41,33 @@ export class DefaultResultValidator implements ResultValidator {
 
 function ensureFields(obj: Record<string, unknown>, fields: OutputContractField[]): void {
   for (const field of fields) {
-    if (!(field.name in obj)) {
-      throw new Error(`Missing required field: ${field.name}`);
+    getFieldValue(obj, field.name);
+  }
+}
+
+function getFieldValue(obj: Record<string, unknown>, path: string): unknown {
+  const parts = path.split(".");
+  let current: unknown = obj;
+
+  for (const [idx, part] of parts.entries()) {
+    if (
+      current === null ||
+      typeof current !== "object" ||
+      Array.isArray(current) ||
+      !(part in (current as Record<string, unknown>))
+    ) {
+      throw new Error(`Missing required field: ${path}`);
+    }
+
+    current = (current as Record<string, unknown>)[part];
+
+    const isLast = idx === parts.length - 1;
+    if (!isLast && (current === null || typeof current !== "object" || Array.isArray(current))) {
+      throw new Error(`Missing required field: ${path}`);
     }
   }
+
+  return current;
 }
 
 function expectString(value: unknown, field: string): string {
@@ -35,6 +75,26 @@ function expectString(value: unknown, field: string): string {
     throw new Error(`Field "${field}" must be a string.`);
   }
   return value;
+}
+
+function expectAiThoughts(value: unknown): AiThoughts {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error('Field "aiThoughts" must be an object containing structured sections.');
+  }
+
+  const obj = value as Record<string, unknown>;
+  const thoughts: Partial<AiThoughts> = {};
+
+  for (const section of AI_THOUGHT_FIELDS) {
+    const sectionValue = obj[section];
+    const fieldName = `aiThoughts.${section}`;
+    if (typeof sectionValue !== "string") {
+      throw new Error(`Field "${fieldName}" must be a string.`);
+    }
+    thoughts[section] = sectionValue;
+  }
+
+  return thoughts as AiThoughts;
 }
 
 function expectStatus(value: unknown): AgentOutput["status"] {

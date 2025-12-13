@@ -3,13 +3,20 @@ import { DefaultResultValidator } from "../src/resultValidator";
 
 describe("DefaultResultValidator", () => {
   const validator = new DefaultResultValidator();
+  const thoughts = {
+    changesMade: "All good",
+    assumptions: "None",
+    decisionsTaken: "Decided quickly",
+    pointsOfUnclarity: "None",
+    testsRun: "Not run",
+  };
 
   it("validates and normalizes a correct payload", () => {
     const raw = {
       taskId: "T1",
       status: "success",
       commitMessage: "Did the thing",
-      aiThoughts: "All good",
+      aiThoughts: thoughts,
     };
 
     expect(validator.validate(raw, DefaultOutputContract)).toEqual(raw);
@@ -28,12 +35,20 @@ describe("DefaultResultValidator", () => {
     expect(() =>
       validator.validate({ taskId: "T1", status: "success" }, DefaultOutputContract)
     ).toThrow(/Missing required field: commitMessage/);
+
+    const { testsRun, ...incompleteThoughts } = thoughts;
+    expect(() =>
+      validator.validate(
+        { taskId: "T1", status: "success", commitMessage: "x", aiThoughts: incompleteThoughts as unknown },
+        DefaultOutputContract
+      )
+    ).toThrow(/Missing required field: aiThoughts.testsRun/);
   });
 
   it("rejects invalid status values", () => {
     expect(() =>
       validator.validate(
-        { taskId: "T1", status: "nope", commitMessage: "x", aiThoughts: "y" },
+        { taskId: "T1", status: "nope", commitMessage: "x", aiThoughts: thoughts },
         DefaultOutputContract
       )
     ).toThrow(/must be one of "success", "blocked", or "failed"/);
@@ -42,10 +57,22 @@ describe("DefaultResultValidator", () => {
   it("rejects non-string fields", () => {
     expect(() =>
       validator.validate(
-        { taskId: 1, status: "success", commitMessage: "x", aiThoughts: "y" },
+        { taskId: 1, status: "success", commitMessage: "x", aiThoughts: thoughts },
         DefaultOutputContract
       )
     ).toThrow(/must be a string/);
+
+    expect(() =>
+      validator.validate(
+        {
+          taskId: "T1",
+          status: "success",
+          commitMessage: "x",
+          aiThoughts: { ...thoughts, assumptions: 123 as unknown as string },
+        },
+        DefaultOutputContract
+      )
+    ).toThrow(/Field "aiThoughts\.assumptions" must be a string/);
   });
 
   it("rejects content exceeding maxLines", () => {
@@ -53,7 +80,7 @@ describe("DefaultResultValidator", () => {
       taskId: "T1",
       status: "success",
       commitMessage: "line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10\nline11",
-      aiThoughts: "thoughts",
+      aiThoughts: { ...thoughts, testsRun: "line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10\nline11\nline12\nline13\nline14\nline15\nline16\nline17\nline18\nline19\nline20\nline21" },
     };
     expect(() => validator.validate(tooLong, DefaultOutputContract)).toThrow(/exceeds maxLines/);
   });

@@ -18,10 +18,29 @@ export const DefaultOutputContract: OutputContract = {
       maxLines: 10,
     },
     {
-      name: "aiThoughts",
-      descriptionOfContent:
-        'Structured notes with all sections present: Changes made; Assumptions; Decisions taken; Points of unclarity (write "None" if none); Tests run status. Include each section even when empty.',
-      maxLines: 100,
+      name: "aiThoughts.changesMade",
+      descriptionOfContent: "What changed in this task; keep concise but specific.",
+      maxLines: 20,
+    },
+    {
+      name: "aiThoughts.assumptions",
+      descriptionOfContent: "Assumptions made; include context or leave \"None\" if not applicable.",
+      maxLines: 20,
+    },
+    {
+      name: "aiThoughts.decisionsTaken",
+      descriptionOfContent: "Key decisions and rationale; include trade-offs considered.",
+      maxLines: 20,
+    },
+    {
+      name: "aiThoughts.pointsOfUnclarity",
+      descriptionOfContent: 'Open questions or unclear areas (write "None" if none).',
+      maxLines: 20,
+    },
+    {
+      name: "aiThoughts.testsRun",
+      descriptionOfContent: "Tests run and outcomes; state explicitly if no tests ran.",
+      maxLines: 20,
     },
   ],
 };

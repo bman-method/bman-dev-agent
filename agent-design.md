@@ -59,7 +59,12 @@ It must write a JSON file to the path provided in the prompt, containing:
 - `taskId`
 - `status` (`success | blocked | failed`)
 - `commitMessage`
-- `aiThoughts`
+- `aiThoughts` with sections:
+  - `changesMade`
+  - `assumptions`
+  - `decisionsTaken`
+  - `pointsOfUnclarity`
+  - `testsRun`
 
 This contract is enforced by the validator.
 The orchestrator only works with the validated, typed output.

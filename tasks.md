@@ -82,7 +82,7 @@ Normalize/propagate the blocked/failure reason into the commit title/body so the
 - [x] TASK-21: Remove unused designFile config
 Delete the designFile knob from config and code paths since it isn’t used in prompts.
 
-- [ ] TASK-22: Split aiThoughts into structured fields
+- [x] TASK-22: Split aiThoughts into structured fields
 Update the output contract and validation to require separate fields for the AI thought sections (Changes made, Assumptions, Decisions taken, Points of unclarity, Tests run).
 
 - [ ] TASK-23: Optional push flag

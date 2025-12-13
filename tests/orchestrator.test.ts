@@ -59,7 +59,13 @@ function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
             taskId: "TASK-11",
             status: "success",
             commitMessage: "message",
-            aiThoughts: "thoughts",
+            aiThoughts: {
+              changesMade: "thoughts",
+              assumptions: "None",
+              decisionsTaken: "N/A",
+              pointsOfUnclarity: "None",
+              testsRun: "Not run",
+            },
           } as AgentOutput)
       ),
     },
@@ -147,7 +153,13 @@ describe("DefaultOrchestrator", () => {
               taskId: "TASK-11",
               status: "blocked",
               commitMessage: "Waiting on dependency",
-              aiThoughts: "Blocked",
+              aiThoughts: {
+                changesMade: "None",
+                assumptions: "None",
+                decisionsTaken: "None",
+                pointsOfUnclarity: "Waiting on access",
+                testsRun: "Not run",
+              },
             } as AgentOutput)
         ),
       },
