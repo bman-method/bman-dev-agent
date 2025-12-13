@@ -24,6 +24,15 @@ const emptyThoughts = {
   testsRun: "",
 };
 
+const warningBlock = [
+  "⚠️ AI-GENERATED COMMIT. <--- Additional warning at the bottom of the commit body",
+  "",
+  "This change was produced by an AI agent and has NOT been reviewed or validated by a human.",
+  "Do not assume correctness, completeness, or production readiness.",
+  "",
+  "Human review is required.",
+].join("\n");
+
 describe("DefaultCommitMessageFormatter", () => {
   const formatter = new DefaultCommitMessageFormatter();
 
@@ -31,23 +40,26 @@ describe("DefaultCommitMessageFormatter", () => {
     const output: AgentOutput = {
       taskId: task.id,
       status: "success",
-      commitMessage: "Add new feature",
+      commitMessage: "Add new feature\n\nImplement the feature body",
       aiThoughts: thoughts,
     };
 
-    expect(formatter.formatTitle(task, output)).toBe("TASK-1 - Add new feature");
+    expect(formatter.formatTitle(task, output)).toBe("TASK-1 [completed]: Add new feature");
     expect(formatter.formatBody(task, output)).toBe(
       [
-        "Task: TASK-1 - Implement feature",
-        "Message: Add new feature",
+        "Implement the feature body",
         "---",
-        "AI Thoughts:",
-        "Changes made: Did the thing.",
-        "Assumptions: None",
-        "Decisions taken: Kept scope small.",
-        "Points of unclarity: None",
-        "Tests run: Not run",
-      ].join("\n")
+        [
+          "AI Thoughts",
+          "-----------",
+          "Changes made: Did the thing.",
+          "Assumptions: None",
+          "Decisions taken: Kept scope small.",
+          "Points of unclarity: None",
+          "Tests run: Not run",
+        ].join("\n"),
+        warningBlock,
+      ].join("\n\n")
     );
   });
 
@@ -59,9 +71,22 @@ describe("DefaultCommitMessageFormatter", () => {
       aiThoughts: emptyThoughts,
     };
 
-    expect(formatter.formatTitle(task, output)).toBe("[blocked] TASK-1 - Task ended with status: blocked");
+    expect(formatter.formatTitle(task, output)).toBe("TASK-1 [blocked]: Task ended with status: blocked");
     expect(formatter.formatBody(task, output)).toBe(
-      ["Task: TASK-1 - Implement feature", "Message: Task ended with status: blocked"].join("\n")
+      [
+        "Task ended with status: blocked",
+        "---",
+        [
+          "AI Thoughts",
+          "-----------",
+          "Changes made:",
+          "Assumptions:",
+          "Decisions taken:",
+          "Points of unclarity:",
+          "Tests run:",
+        ].join("\n"),
+        warningBlock,
+      ].join("\n\n")
     );
   });
 
@@ -80,20 +105,22 @@ describe("DefaultCommitMessageFormatter", () => {
     };
 
     expect(formatter.formatTitle(task, output)).toBe(
-      "[failed] TASK-1 - Changes made: Blocked on DB migration Assumptions: None Decisions taken: Escalate to infra Points of unclarity: Deployment window unclear Tests run: Investigating rollout"
+      "TASK-1 [blocked]: Changes made: Blocked on DB migration Assumptions: None Decisions taken: Escalate to infra Points of unclarity: Deployment window unclear Tests run: Investigating rollout"
     );
     expect(formatter.formatBody(task, output)).toBe(
       [
-        "Task: TASK-1 - Implement feature",
-        "Message: Changes made: Blocked on DB migration\nAssumptions: None\nDecisions taken: Escalate to infra\nPoints of unclarity: Deployment window unclear\nTests run: Investigating rollout",
         "---",
-        "AI Thoughts:",
-        "Changes made: Blocked on DB migration",
-        "Assumptions: None",
-        "Decisions taken: Escalate to infra",
-        "Points of unclarity: Deployment window unclear",
-        "Tests run: Investigating rollout",
-      ].join("\n")
+        [
+          "AI Thoughts",
+          "-----------",
+          "Changes made: Blocked on DB migration",
+          "Assumptions: None",
+          "Decisions taken: Escalate to infra",
+          "Points of unclarity: Deployment window unclear",
+          "Tests run: Investigating rollout",
+        ].join("\n"),
+        warningBlock,
+      ].join("\n\n")
     );
   });
 });
