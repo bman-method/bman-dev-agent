@@ -87,3 +87,8 @@ Update the output contract and validation to require separate fields for the AI 
 
 - [x] TASK-23: Optional push flag
 Add a CLI flag `--push` (opt-in) that triggers git push after each task; implement the push behavior instead of a no-op, keeping push disabled by default.
+
+- [ ] TASK-24: Tracker file  per branch
+Instead of the default tracker: tasks.md, I'd like you to make the default tracker location to be:
+.bman/tracker/<branchName>/tasks.md.
+This will allow merging feature branches with their trackers but still avoiding conflicts.
