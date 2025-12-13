@@ -152,3 +152,18 @@ Do not assume correctness, completeness, or production readiness.
 
 Human review is required.
 ```
+
+- [ ] TASK-28: Improve readme.md
+The readme is lacking the description of the workflow with the tool which is:
+* Define tasks in the tasks.md file of the branch
+* Let bman-dev-agent perform those tasks sequentially and produce a detailed commit per task
+* Review all the commits
+* In case of an issue there are 2 options:
+  * Option 1: 
+     - Add improvement task that will fix the issue (like it is done in regular human code reviews)
+  * Option 2: 
+     - perform git reset to the last commit that passed the review
+     - Improve the task description to avoid this issue from poping up, next time the model implements the task.
+
+* It's need to be explained that sometimes reset is the better choice because we can get cleaner solution and it also makes us better in defining tasks.
+* Also emphasise how important is the human review of all the tasks and how the tool makes it wasy to do it quickly.
