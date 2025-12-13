@@ -93,7 +93,7 @@ Instead of the default tracker: tasks.md, I'd like you to make the default track
 .bman/tracker/<branchName>/tasks.md.
 This will allow merging feature branches with their trackers but still avoiding conflicts.
 
-- [ ] TASK-25: Add TS linter
+- [x] TASK-25: Add TS linter
 Add a typescript linter to this project with the usual industry standad convensions.
 Ensure that there is an option to run the linter via "npm run lint" with an option to auto fix.
 I don't care about all the rules, but I do care for:
