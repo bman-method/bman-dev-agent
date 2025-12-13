@@ -35,7 +35,7 @@ Instructions:
 - [x] TASK-10: Git Ops
   Ensure clean working tree; create commit; push (can be no-op).
 
-- [ ] TASK-11: Config Loader
+- [x] TASK-11: Config Loader
   Load configuration, apply defaults, and validate required fields (agent, tasksFile, designFile?, outputDir).
    Note that:
      * The only supported agent is "Codex" (for v0)
@@ -45,7 +45,7 @@ Instructions:
      * Make sure the loader creates those folders if they don't exist (.bman and .bman/output)
 
 
-- [ ] TASK-12: Orchestrator
+- [x] TASK-12: Orchestrator
   Implement orchestrator per design, using refactored task tracker document and prompt strategy.
 
 - [ ] TASK-13: CLI Wiring

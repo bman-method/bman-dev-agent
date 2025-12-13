@@ -104,6 +104,7 @@ export interface Orchestrator {
 export interface OrchestratorDeps {
   configLoader: ConfigLoader;
   taskTracker: TaskTracker;
+  promptStrategy: PromptStrategy;
   runContextFactory: RunContextFactory;
   contract: OutputContract;
   agent: CodeAgent;
