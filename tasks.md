@@ -67,5 +67,5 @@ I believe that this should be implemented in the CodexAgent class because its co
 - [x] TASK-16: Commit guidelines in output contract
 Update the output contract commitMessage description (src/outputContract.ts) to include concise commit guidelines (imperative subject ≤50 chars, blank line before body, ~72-char body focusing on what/why).
 
-- [ ] TASK-17: aiThoughts prompt sections
+- [x] TASK-17: aiThoughts prompt sections
 Improve the aiThoughts instructions (prompt/output contract) so the model outputs these sections every time: Changes made; Assumptions; Decisions taken; Points of unclarity (explicitly say “None” if none); Tests run status. Ensure the prompt makes this structure clear even when a section is empty.

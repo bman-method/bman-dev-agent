@@ -19,7 +19,8 @@ export const DefaultOutputContract: OutputContract = {
     },
     {
       name: "aiThoughts",
-      descriptionOfContent: "Brief notes on what the AI did or why it blocked/failed.",
+      descriptionOfContent:
+        'Structured notes with all sections present: Changes made; Assumptions; Decisions taken; Points of unclarity (write "None" if none); Tests run status. Include each section even when empty.',
       maxLines: 100,
     },
   ],
