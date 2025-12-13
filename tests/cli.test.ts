@@ -37,6 +37,7 @@ describe("parseArgs", () => {
     });
 
     expect(parseArgs(["node", "cli.js", "--help"])).toEqual({ help: true });
+    expect(parseArgs(["node", "cli.js", "--push"])).toEqual({ push: true });
   });
 
   it("throws on unknown arguments or missing agent value", () => {
@@ -149,5 +150,27 @@ describe("DefaultCLI", () => {
       process.exitCode = originalExitCode;
       spy.mockRestore();
     }
+  });
+
+  it("enables pushing when --push is provided", async () => {
+    const runOnce = jest.fn().mockResolvedValue(undefined);
+    const runAll = jest.fn();
+    const configLoader = makeConfigLoader();
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
+    let gitInstance: unknown;
+    const orchestratorFactory = {
+      create: jest.fn((deps) => {
+        gitInstance = deps.git;
+        return { runOnce, runAll };
+      }),
+    };
+    const cli = new DefaultCLI({ orchestratorFactory, configLoader, taskTracker });
+
+    await cli.run({ push: true });
+
+    expect(runOnce).toHaveBeenCalled();
+    expect((gitInstance as any).pushEnabled).toBe(true);
   });
 });

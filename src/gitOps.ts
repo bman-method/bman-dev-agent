@@ -2,7 +2,10 @@ import { execFileSync } from "node:child_process";
 import { GitOps } from "./types";
 
 export class DefaultGitOps implements GitOps {
-  constructor(private readonly cwd: string = process.cwd()) {}
+  constructor(
+    private readonly cwd: string = process.cwd(),
+    private readonly pushEnabled: boolean = false
+  ) {}
 
   ensureCleanWorkingTree(): void {
     const output = this.runGit(["status", "--porcelain"]);
@@ -19,7 +22,11 @@ export class DefaultGitOps implements GitOps {
   }
 
   push(): void {
-    // Intentional no-op implementation for now; push is optional in v0.
+    if (!this.pushEnabled) {
+      return;
+    }
+
+    this.runGit(["push"]);
   }
 
   private runGit(args: string[]): string {

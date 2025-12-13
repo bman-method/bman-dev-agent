@@ -85,5 +85,5 @@ Delete the designFile knob from config and code paths since it isn’t used in p
 - [x] TASK-22: Split aiThoughts into structured fields
 Update the output contract and validation to require separate fields for the AI thought sections (Changes made, Assumptions, Decisions taken, Points of unclarity, Tests run).
 
-- [ ] TASK-23: Optional push flag
+- [x] TASK-23: Optional push flag
 Add a CLI flag `--push` (opt-in) that triggers git push after each task; implement the push behavior instead of a no-op, keeping push disabled by default.

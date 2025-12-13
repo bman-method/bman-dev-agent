@@ -129,6 +129,7 @@ export interface CLIOptions {
   all?: boolean;
   agent?: string;
   help?: boolean;
+  push?: boolean;
 }
 
 export interface CLI {

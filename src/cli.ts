@@ -58,7 +58,8 @@ export class DefaultCLI implements CLI {
     }
 
     const orchestrator =
-      this.overrides.orchestrator ?? this.createOrchestrator(configLoader, taskTracker);
+      this.overrides.orchestrator ??
+      this.createOrchestrator(configLoader, taskTracker, options.push === true);
 
     if (options.all) {
       await orchestrator.runAll();
@@ -85,7 +86,8 @@ export class DefaultCLI implements CLI {
 
   private createOrchestrator(
     configLoader?: ConfigLoader,
-    taskTracker?: TaskTracker
+    taskTracker?: TaskTracker,
+    pushEnabled = false
   ): Orchestrator {
     const resolvedConfigLoader = configLoader ?? this.overrides.configLoader ?? new DefaultConfigLoader();
     const config = resolvedConfigLoader.load();
@@ -104,7 +106,7 @@ export class DefaultCLI implements CLI {
       resultReader: new DefaultResultReader(),
       resultValidator: new DefaultResultValidator(),
       commitFormatter: new DefaultCommitMessageFormatter(),
-      git: new DefaultGitOps(),
+      git: new DefaultGitOps(process.cwd(), pushEnabled),
     };
 
     const factory = this.overrides.orchestratorFactory ?? new DefaultOrchestratorFactory();
@@ -143,6 +145,11 @@ export function parseArgs(argv: string[]): CLIOptions {
       continue;
     }
 
+    if (arg === "--push") {
+      options.push = true;
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -174,6 +181,7 @@ Usage: bman-dev-agent [options]
 Options:
   --all, -a       Run all tasks sequentially
   --agent <name>  Agent name (only "codex" supported; default: codex)
+  --push          Push commits after each task (opt-in)
   --help, -h      Show this help message
 `.trim();
   console.error(usage);

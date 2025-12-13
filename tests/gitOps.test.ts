@@ -49,10 +49,49 @@ describe("DefaultGitOps", () => {
     });
   });
 
-  it("push is a no-op", () => {
+  it("skips push when disabled", () => {
     withTempRepo((dir) => {
-      const git = new DefaultGitOps(dir);
-      git.push(); // should not throw
+      const remote = fs.mkdtempSync(path.join(os.tmpdir(), "gitops-remote-"));
+      try {
+        runGit(remote, ["init", "--bare"]);
+        runGit(dir, ["remote", "add", "origin", remote]);
+        runGit(dir, ["config", "branch.main.remote", "origin"]);
+        runGit(dir, ["config", "branch.main.merge", "refs/heads/main"]);
+        fs.writeFileSync(path.join(dir, "file.txt"), "content");
+
+        const git = new DefaultGitOps(dir);
+        git.commit("Add file", "Body");
+        git.push();
+
+        const branchPath = path.join(remote, "refs", "heads", "main");
+        expect(fs.existsSync(branchPath)).toBe(false);
+      } finally {
+        fs.rmSync(remote, { recursive: true, force: true });
+      }
+    });
+  });
+
+  it("pushes commits to the configured remote when enabled", () => {
+    withTempRepo((dir) => {
+      const remote = fs.mkdtempSync(path.join(os.tmpdir(), "gitops-remote-"));
+      try {
+        runGit(remote, ["init", "--bare"]);
+        runGit(dir, ["remote", "add", "origin", remote]);
+
+        fs.writeFileSync(path.join(dir, "file.txt"), "one");
+        const git = new DefaultGitOps(dir, true);
+        git.commit("Initial commit", "Body");
+        runGit(dir, ["push", "--set-upstream", "origin", "main"]);
+
+        fs.writeFileSync(path.join(dir, "file.txt"), "two");
+        git.commit("Second commit", "Body");
+        git.push();
+
+        const log = runGit(remote, ["log", "-1", "--pretty=%s", "main"]);
+        expect(log.trim()).toBe("Second commit");
+      } finally {
+        fs.rmSync(remote, { recursive: true, force: true });
+      }
     });
   });
 });
