@@ -1,7 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { DefaultTaskTracker, parseTasks, serializeTasks } from "../src/taskTracker";
+import {
+  DefaultTaskTracker,
+  parseDocument,
+  serializeDocument,
+} from "../src/taskTracker";
 import { Task } from "../src/types";
 
 function withTempDir(fn: (dir: string) => void): void {
@@ -13,7 +17,10 @@ function withTempDir(fn: (dir: string) => void): void {
   }
 }
 
-const sampleFile = `- [ ] TASK-1: First task
+const sampleFile = `Instructions:
+- keep tasks short
+
+- [ ] TASK-1: First task
    Do the first thing.
 
 - [x] TASK-2: Finished task
@@ -23,10 +30,11 @@ const sampleFile = `- [ ] TASK-1: First task
 Waiting on external dependency.
 `;
 
-describe("parseTasks", () => {
-  it("parses tasks with ids, titles, statuses, and descriptions", () => {
-    const tasks = parseTasks(sampleFile);
-    expect(tasks).toEqual<Task[]>([
+describe("parseDocument", () => {
+  it("parses prelude text and tasks with ids, titles, statuses, and descriptions", () => {
+    const doc = parseDocument(sampleFile);
+    expect(doc.preludeText).toBe("Instructions:\n- keep tasks short\n");
+    expect(doc.tasks).toEqual<Task[]>([
       {
         id: "TASK-1",
         title: "First task",
@@ -49,8 +57,8 @@ describe("parseTasks", () => {
   });
 
   it("throws when encountering duplicate task ids", () => {
-    const duplicate = `- [ ] T1: First\n- [ ] T1: Second`;
-    expect(() => parseTasks(duplicate)).toThrow(/Duplicate task id/);
+    const duplicate = `Prelude text\n\n- [ ] T1: First\n- [ ] T1: Second`;
+    expect(() => parseDocument(duplicate)).toThrow(/Duplicate task id/);
   });
 });
 
@@ -61,9 +69,10 @@ describe("DefaultTaskTracker", () => {
       fs.writeFileSync(filePath, sampleFile);
 
       const tracker = new DefaultTaskTracker(filePath);
-      const tasks = tracker.loadTasks();
-      const next = tracker.pickNextTask(tasks);
+      const doc = tracker.loadDocument();
+      const next = tracker.pickNextTask(doc.tasks);
 
+      expect(doc.preludeText).toBe("Instructions:\n- keep tasks short\n");
       expect(next?.id).toBe("TASK-1");
     });
   });
@@ -75,11 +84,12 @@ describe("DefaultTaskTracker", () => {
       fs.writeFileSync(filePath, spaced);
 
       const tracker = new DefaultTaskTracker(filePath);
-      const tasks = tracker.loadTasks();
+      const doc = tracker.loadDocument();
 
-      expect(tasks).toEqual<Task[]>([
+      expect(doc.tasks).toEqual<Task[]>([
         { id: "TASK-1", title: "First task", description: "", status: "open" },
       ]);
+      expect(doc.preludeText).toBe("");
     });
   });
 
@@ -89,33 +99,36 @@ describe("DefaultTaskTracker", () => {
       fs.writeFileSync(filePath, sampleFile);
 
       const tracker = new DefaultTaskTracker(filePath);
-      const tasks = tracker.loadTasks();
+      const doc = tracker.loadDocument();
 
-      const markedDone = tracker.markDone(tasks, "TASK-1", "sha123");
+      const markedDone = tracker.markDone(doc.tasks, "TASK-1", "sha123");
       const markedBlocked = tracker.markBlocked(markedDone, "TASK-3", "Waiting", "sha456");
-      tracker.saveTasks(markedBlocked);
+      tracker.saveDocument({ ...doc, tasks: markedBlocked });
 
       const saved = fs.readFileSync(filePath, "utf8");
-      const expected = serializeTasks([
-        {
-          id: "TASK-1",
-          title: "First task",
-          description: "Do the first thing.",
-          status: "done",
-        },
-        {
-          id: "TASK-2",
-          title: "Finished task",
-          description: "Already completed.",
-          status: "done",
-        },
-        {
-          id: "TASK-3",
-          title: "Blocked task",
-          description: "Waiting on external dependency.",
-          status: "blocked",
-        },
-      ]);
+      const expected = serializeDocument({
+        preludeText: doc.preludeText,
+        tasks: [
+          {
+            id: "TASK-1",
+            title: "First task",
+            description: "Do the first thing.",
+            status: "done",
+          },
+          {
+            id: "TASK-2",
+            title: "Finished task",
+            description: "Already completed.",
+            status: "done",
+          },
+          {
+            id: "TASK-3",
+            title: "Blocked task",
+            description: "Waiting on external dependency.",
+            status: "blocked",
+          },
+        ],
+      });
 
       expect(saved).toBe(expected);
     });

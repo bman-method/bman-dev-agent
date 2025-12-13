@@ -1,16 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Task, TaskTracker } from "./types";
+import { Task, TaskTracker, TaskTrackerDocument } from "./types";
 
 type TaskStatus = Task["status"];
 
 export class DefaultTaskTracker implements TaskTracker {
   constructor(private readonly tasksFile: string = "tasks.md") {}
 
-  loadTasks(): Task[] {
+  loadDocument(): TaskTrackerDocument {
     const fullPath = this.resolvePath();
     const content = fs.readFileSync(fullPath, "utf8");
-    return parseTasks(content);
+    return parseDocument(content);
   }
 
   pickNextTask(tasks: Task[]): Task | null {
@@ -25,9 +25,9 @@ export class DefaultTaskTracker implements TaskTracker {
     return this.updateStatus(tasks, taskId, "blocked");
   }
 
-  saveTasks(tasks: Task[]): void {
+  saveDocument(doc: TaskTrackerDocument): void {
     const fullPath = this.resolvePath();
-    const content = serializeTasks(tasks);
+    const content = serializeDocument(doc);
     fs.writeFileSync(fullPath, content, "utf8");
   }
 
@@ -67,11 +67,18 @@ const STATUS_TO_SYMBOL: Record<Task["status"], string> = {
 
 const TASK_LINE = /^\s*-\s*\[\s*([x!])?\s*\]\s+(\S+):\s*(.*)$/i;
 
-function parseTasks(content: string): Task[] {
+function parseDocument(content: string): TaskTrackerDocument {
   const lines = content.split(/\r?\n/);
-  const tasks: Task[] = [];
+  const preludeLines: string[] = [];
 
   let i = 0;
+  while (i < lines.length && !matchTaskLine(lines[i])) {
+    preludeLines.push(lines[i]);
+    i++;
+  }
+
+  const tasks: Task[] = [];
+
   while (i < lines.length) {
     const match = matchTaskLine(lines[i]);
     if (!match) {
@@ -102,7 +109,10 @@ function parseTasks(content: string): Task[] {
     tasks.push({ id, title, description, status });
   }
 
-  return tasks;
+  return {
+    preludeText: preludeLines.join("\n"),
+    tasks,
+  };
 }
 
 function matchTaskLine(line: string): RegExpMatchArray | null {
@@ -131,7 +141,7 @@ function ensureUniqueId(tasks: Task[], id: string): void {
   }
 }
 
-function serializeTasks(tasks: Task[]): string {
+function serializeTasksToLines(tasks: Task[]): string[] {
   const lines: string[] = [];
 
   tasks.forEach((task, index) => {
@@ -151,12 +161,34 @@ function serializeTasks(tasks: Task[]): string {
     }
   });
 
-  // Ensure trailing newline
   if (lines.length === 0 || lines[lines.length - 1] !== "") {
     lines.push("");
   }
 
+  return lines;
+}
+
+function parseTasks(content: string): Task[] {
+  return parseDocument(content).tasks;
+}
+
+function serializeTasks(tasks: Task[]): string {
+  return serializeTasksToLines(tasks).join("\n");
+}
+
+function serializeDocument(doc: TaskTrackerDocument): string {
+  const lines: string[] = [];
+
+  if (doc.preludeText) {
+    lines.push(...doc.preludeText.split(/\r?\n/));
+    if (lines.length && lines[lines.length - 1] !== "") {
+      lines.push("");
+    }
+  }
+
+  lines.push(...serializeTasksToLines(doc.tasks));
+
   return lines.join("\n");
 }
 
-export { parseTasks, serializeTasks };
+export { parseDocument, parseTasks, serializeDocument, serializeTasks };
