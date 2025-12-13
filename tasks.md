@@ -54,5 +54,5 @@ Ship a runnable CLI entry point (bin script) that:
 * Wires up the orchestrator with default deps and uses config loader defaults
 * Exits non-zero on orchestrator errors
 
-- [ ] TASK-14: Fix bug
+- [x] TASK-14: Fix bug
 * I tried to run the cli to perform a single task. It actually worked, performed the task committed it, but did not commit the tracker file change in the same commit. So I was left with uncommitted changes. It is required to add the tracker status change to the same commit of the task completion.
