@@ -96,7 +96,6 @@ interface PromptStrategy {
 
 interface CodeAgent {
   name: string;
-  promptStrategy: PromptStrategy;
 
   run(prompt: string, ctx: RunContext): Promise<void>;
   // MUST write output JSON to ctx.outputPath

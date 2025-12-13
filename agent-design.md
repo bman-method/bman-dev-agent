@@ -146,11 +146,12 @@ The prompt must be deterministic and concise.
 ---
 
 ### 6. Codex Agent Adapter
+- See: types-design.md - for information about the interface
 - Implement the `CodeAgent` interface
 - Send the prompt to Codex
 - Wait for completion
-- Do **not** parse or interpret output
-- The only contract is: output file must exist
+- Fail if exit code is not 0
+- Fail if output wasn't written to ctx.outputPath
 
 ---
 
