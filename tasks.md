@@ -49,4 +49,9 @@ Instructions:
   Implement orchestrator per design, using refactored task tracker document and prompt strategy.
 
 - [ ] TASK-13: CLI Wiring
-  Simple CLI to run one task or all sequentially; no background mode; minimal flags.
+  Ship a runnable CLI entry point (bin script) that:
+    * Parses minimal flags (run-once default, --all for sequential)
+    * Supports optional agent override but only accepts Codex
+    * Wires up the orchestrator with default deps and uses config loader defaults
+    * Exits non-zero on orchestrator errors
+
