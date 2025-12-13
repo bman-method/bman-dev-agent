@@ -45,3 +45,15 @@ export interface OutputContractField {
   descriptionOfContent: string;
   maxLines?: number;
 }
+
+export interface PromptInput {
+  task: Task;
+  config: Config;
+  runContext: RunContext;
+  contract: OutputContract;
+  trackerDocument: TaskTrackerDocument;
+}
+
+export interface PromptStrategy {
+  build(input: PromptInput): string;
+}
