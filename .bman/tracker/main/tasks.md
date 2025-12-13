@@ -92,3 +92,12 @@ Add a CLI flag `--push` (opt-in) that triggers git push after each task; impleme
 Instead of the default tracker: tasks.md, I'd like you to make the default tracker location to be:
 .bman/tracker/<branchName>/tasks.md.
 This will allow merging feature branches with their trackers but still avoiding conflicts.
+
+- [ ] TASK-25: Add TS linter
+Add a typescript linter to this project with the usual industry standad convensions.
+Ensure that there is an option to run the linter via "npm run lint" with an option to auto fix.
+I don't care about all the rules, but I do care for:
+* Not allowing "if" without curly braces. Same else and all other syntax structures.
+* Not allowing dead code (unused var / import for instance)
+* Not allowing untyped things
+Make sure that during this task you also run the auto fix, and if it fails, fix manually the things that must be fixed.
