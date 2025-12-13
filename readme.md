@@ -12,5 +12,5 @@ Developer-controlled CLI that runs a single coding task at a time using the B-MA
 ## Quick start
 - Install deps: `npm install`
 - Build once: `npm run build`
-- Configure (optional): `.bman/config.json` sets `tasksFile`, `designFile`, and `outputDir` (defaults created automatically).
+- Configure (optional): `.bman/config.json` sets `tasksFile` and `outputDir` (defaults created automatically).
 - Run the next task: `node dist/cli.js` (or `./bin/bman-dev-agent`) for one task, `node dist/cli.js --all` to run sequentially until a block/failure.

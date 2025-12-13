@@ -5,7 +5,6 @@
 interface Config {
   agent: string;                 // "codex" | "claude" | "gemini"
   tasksFile: string;             // default: "tasks.md"
-  designFile?: string;
   outputDir: string;             // e.g. ".hamdan/out"
 }
 

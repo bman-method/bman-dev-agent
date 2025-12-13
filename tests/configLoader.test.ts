@@ -23,7 +23,6 @@ describe("DefaultConfigLoader", () => {
 
       expect(config.agent).toBe("codex");
       expect(config.tasksFile).toBe("tasks.md");
-      expect(config.designFile).toBeUndefined();
       expect(config.outputDir).toBe(path.join(dir, ".bman", "output"));
 
       expect(fs.existsSync(path.join(dir, ".bman"))).toBe(true);
@@ -43,7 +42,6 @@ describe("DefaultConfigLoader", () => {
         JSON.stringify({
           agent: "Codex",
           tasksFile: "custom-tasks.md",
-          designFile: "design.md",
           outputDir,
         })
       );
@@ -53,7 +51,6 @@ describe("DefaultConfigLoader", () => {
 
       expect(config.agent).toBe("codex");
       expect(config.tasksFile).toBe("custom-tasks.md");
-      expect(config.designFile).toBe("design.md");
       expect(config.outputDir).toBe(outputDir);
       expect(fs.existsSync(outputDir)).toBe(true);
     });
@@ -73,14 +70,5 @@ describe("DefaultConfigLoader", () => {
     expect(() =>
       loader.validate({ agent: "codex", tasksFile: "tasks.md", outputDir: "" } as Config)
     ).toThrow(/outputDir/);
-
-    expect(() =>
-      loader.validate({
-        agent: "codex",
-        tasksFile: "tasks.md",
-        outputDir: ".out",
-        designFile: 123 as unknown as string,
-      })
-    ).toThrow(/designFile/);
   });
 });

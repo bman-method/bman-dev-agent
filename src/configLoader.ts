@@ -15,7 +15,6 @@ export class DefaultConfigLoader implements ConfigLoader {
 
     const agent = (fileConfig.agent ?? "codex").toLowerCase();
     const tasksFile = fileConfig.tasksFile ?? "tasks.md";
-    const designFile = fileConfig.designFile;
     const outputDir = fileConfig.outputDir ?? path.join(configDir, "output");
 
     ensureDirectory(resolveDir(outputDir));
@@ -23,7 +22,6 @@ export class DefaultConfigLoader implements ConfigLoader {
     return {
       agent,
       tasksFile,
-      designFile,
       outputDir,
     };
   }
@@ -35,10 +33,6 @@ export class DefaultConfigLoader implements ConfigLoader {
 
     if (!isNonEmptyString(config.tasksFile)) {
       throw new Error("tasksFile must be a non-empty string.");
-    }
-
-    if (config.designFile !== undefined && typeof config.designFile !== "string") {
-      throw new Error("designFile must be a string when provided.");
     }
 
     if (!isNonEmptyString(config.outputDir)) {

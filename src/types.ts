@@ -1,7 +1,6 @@
 export interface Config {
   agent: string;
   tasksFile: string;
-  designFile?: string;
   outputDir: string;
 }
 

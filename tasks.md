@@ -79,7 +79,7 @@ If any task in the tracker is blocked, the CLI should refuse to start new work a
 - [x] TASK-20: Ensure blocked/failure reasons land in commit info
 Normalize/propagate the blocked/failure reason into the commit title/body so the “why” is preserved even when the agent omits it.
 
-- [ ] TASK-21: Remove unused designFile config
+- [x] TASK-21: Remove unused designFile config
 Delete the designFile knob from config and code paths since it isn’t used in prompts.
 
 - [ ] TASK-22: Split aiThoughts into structured fields
