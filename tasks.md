@@ -70,5 +70,5 @@ Update the output contract commitMessage description (src/outputContract.ts) to 
 - [x] TASK-17: aiThoughts prompt sections
 Improve the aiThoughts instructions (prompt/output contract) so the model outputs these sections every time: Changes made; Assumptions; Decisions taken; Points of unclarity (explicitly say “None” if none); Tests run status. Ensure the prompt makes this structure clear even when a section is empty.
 
-- [ ] TASK-18: README alignment with B-MAN Method
+- [x] TASK-18: README alignment with B-MAN Method
 Read bman-method.md and enhance readme.md to specify how this tool aligns with the method.
