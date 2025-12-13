@@ -4,7 +4,7 @@
 
 interface Config {
   agent: string;                 // "codex" | "claude" | "gemini"
-  tasksFile: string;             // default: "tasks.md"
+  tasksFile: string;             // default: ".bman/tracker/<branch>/tasks.md"
   outputDir: string;             // e.g. ".hamdan/out"
 }
 

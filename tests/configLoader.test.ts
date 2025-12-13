@@ -16,17 +16,24 @@ function withTempDir(fn: (dir: string) => void): void {
 describe("DefaultConfigLoader", () => {
   it("applies defaults and creates config/output directories when config file is missing", () => {
     withTempDir((dir) => {
-      const configPath = path.join(dir, ".bman", "config.json");
-      const loader = new DefaultConfigLoader(configPath);
+      const originalBranch = process.env.BMAN_BRANCH;
+      process.env.BMAN_BRANCH = "main";
+      try {
+        const configPath = path.join(dir, ".bman", "config.json");
+        const loader = new DefaultConfigLoader(configPath);
 
-      const config = loader.load();
+        const config = loader.load();
 
-      expect(config.agent).toBe("codex");
-      expect(config.tasksFile).toBe("tasks.md");
-      expect(config.outputDir).toBe(path.join(dir, ".bman", "output"));
+        expect(config.agent).toBe("codex");
+        expect(config.tasksFile).toBe(path.join(dir, ".bman", "tracker", "main", "tasks.md"));
+        expect(config.outputDir).toBe(path.join(dir, ".bman", "output"));
 
-      expect(fs.existsSync(path.join(dir, ".bman"))).toBe(true);
-      expect(fs.existsSync(path.join(dir, ".bman", "output"))).toBe(true);
+        expect(fs.existsSync(path.join(dir, ".bman"))).toBe(true);
+        expect(fs.existsSync(path.join(dir, ".bman", "output"))).toBe(true);
+        expect(fs.existsSync(path.join(dir, ".bman", "tracker", "main"))).toBe(true);
+      } finally {
+        process.env.BMAN_BRANCH = originalBranch;
+      }
     });
   });
 

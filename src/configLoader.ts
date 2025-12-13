@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Config, ConfigLoader } from "./types";
+import { getDefaultTasksFilePath } from "./tasksFile";
 
 export class DefaultConfigLoader implements ConfigLoader {
   constructor(private readonly configPath: string = path.join(".bman", "config.json")) {}
@@ -14,10 +15,11 @@ export class DefaultConfigLoader implements ConfigLoader {
     const fileConfig = readConfigFile(resolvedPath);
 
     const agent = (fileConfig.agent ?? "codex").toLowerCase();
-    const tasksFile = fileConfig.tasksFile ?? "tasks.md";
+    const tasksFile = fileConfig.tasksFile ?? getDefaultTasksFilePath(configDir);
     const outputDir = fileConfig.outputDir ?? path.join(configDir, "output");
 
     ensureDirectory(resolveDir(outputDir));
+    ensureDirectory(path.dirname(resolvePath(tasksFile)));
 
     return {
       agent,
@@ -54,10 +56,14 @@ function ensureDirectory(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function resolveDir(dir: string): string {
   return path.isAbsolute(dir) ? dir : path.resolve(dir);
 }
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
+function resolvePath(filePath: string): string {
+  return path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
 }
