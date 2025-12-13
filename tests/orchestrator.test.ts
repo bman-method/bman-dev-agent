@@ -124,7 +124,7 @@ describe("DefaultOrchestrator", () => {
     expect(deps.taskTracker.markDone).toHaveBeenCalledWith(
       expect.any(Array),
       "TASK-11",
-      "sha123"
+      expect.any(String)
     );
     expect(deps.taskTracker.saveDocument).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -132,6 +132,9 @@ describe("DefaultOrchestrator", () => {
         tasks: expect.arrayContaining([expect.objectContaining({ id: "TASK-11", status: "done" })]),
       })
     );
+    const saveDocumentMock = deps.taskTracker.saveDocument as jest.Mock;
+    const commitMock = deps.git.commit as jest.Mock;
+    expect(saveDocumentMock.mock.invocationCallOrder[0]).toBeLessThan(commitMock.mock.invocationCallOrder[0]);
     expect(deps.taskTracker.markBlocked).not.toHaveBeenCalled();
   });
 
@@ -158,7 +161,7 @@ describe("DefaultOrchestrator", () => {
       expect.any(Array),
       "TASK-11",
       "Waiting on dependency",
-      "sha123"
+      undefined
     );
     expect(deps.taskTracker.saveDocument).toHaveBeenCalled();
   });

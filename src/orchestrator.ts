@@ -69,16 +69,16 @@ export class DefaultOrchestrator implements Orchestrator {
         );
       }
 
+      const updatedTasks = this.updateTasks(taskTracker, trackerDocument, task, output, commitSha);
+      taskTracker.saveDocument({ ...trackerDocument, tasks: updatedTasks });
+      tasksUpdated = true;
+
       const title = commitFormatter.formatTitle(task, output);
       const body = commitFormatter.formatBody(task, output);
 
       commitSha = git.commit(title, body);
       git.push();
       console.log(`Orchestrator: created commit ${commitSha}`);
-
-      const updatedTasks = this.updateTasks(taskTracker, trackerDocument, task, output, commitSha);
-      tasksUpdated = true;
-      taskTracker.saveDocument({ ...trackerDocument, tasks: updatedTasks });
 
       console.log(`Orchestrator: task ${task.id} completed with status "${output.status}"`);
 
@@ -91,7 +91,7 @@ export class DefaultOrchestrator implements Orchestrator {
       const reason = err instanceof Error ? err.message : String(err);
       console.error(`Orchestrator: task ${task.id} failed - ${reason}`);
 
-      if (!tasksUpdated) {
+      if (!tasksUpdated || !commitSha) {
         try {
           const updatedTasks = taskTracker.markBlocked(trackerDocument.tasks, task.id, reason, commitSha);
           taskTracker.saveDocument({ ...trackerDocument, tasks: updatedTasks });
