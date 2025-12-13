@@ -57,7 +57,7 @@ Ship a runnable CLI entry point (bin script) that:
 - [x] TASK-14: Fix bug
 * I tried to run the cli to perform a single task. It actually worked, performed the task committed it, but did not commit the tracker file change in the same commit. So I was left with uncommitted changes. It is required to add the tracker status change to the same commit of the task completion.
 
-- [ ] TASK-15: Enhance codex logging
+- [x] TASK-15: Enhance codex logging
 When I run tasks, I see the entire codex log in STDOUT.
 I believe that the log should be written to a file: {output-folder}/logs/codex-{taskid}-{timestamp}.log
 And the console log should indicate that codex is running and writing the logs to this location
