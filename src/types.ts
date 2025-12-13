@@ -5,6 +5,11 @@ export interface Config {
   outputDir: string;
 }
 
+export interface ConfigLoader {
+  load(): Config;
+  validate(config: Config): void;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -56,4 +61,67 @@ export interface PromptInput {
 
 export interface PromptStrategy {
   build(input: PromptInput): string;
+}
+
+export interface CodeAgent {
+  name: string;
+  run(prompt: string, ctx: RunContext): Promise<void>;
+}
+
+export type RawAgentResult = unknown;
+
+export interface AgentOutput {
+  taskId: string;
+  status: "success" | "blocked" | "failed";
+  commitMessage: string;
+  aiThoughts: string;
+}
+
+export interface ResultReader {
+  read(path: string): RawAgentResult;
+}
+
+export interface ResultValidator {
+  validate(raw: RawAgentResult, contract: OutputContract): AgentOutput;
+}
+
+export interface CommitMessageFormatter {
+  formatTitle(task: Task, output: AgentOutput): string;
+  formatBody(task: Task, output: AgentOutput): string;
+}
+
+export interface GitOps {
+  ensureCleanWorkingTree(): void;
+  commit(title: string, body: string): string; // returns sha
+  push(): void;
+}
+
+export interface Orchestrator {
+  runOnce(): Promise<void>;
+  runAll(): Promise<void>;
+}
+
+export interface OrchestratorDeps {
+  configLoader: ConfigLoader;
+  taskTracker: TaskTracker;
+  runContextFactory: RunContextFactory;
+  contract: OutputContract;
+  agent: CodeAgent;
+  resultReader: ResultReader;
+  resultValidator: ResultValidator;
+  commitFormatter: CommitMessageFormatter;
+  git: GitOps;
+}
+
+export interface OrchestratorFactory {
+  create(deps: OrchestratorDeps): Orchestrator;
+}
+
+export interface CLIOptions {
+  all?: boolean;
+  agent?: string;
+}
+
+export interface CLI {
+  run(options: CLIOptions): Promise<void>;
 }
