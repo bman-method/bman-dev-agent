@@ -26,12 +26,20 @@ interface Task {
   status: "open" | "done" | "blocked";
 }
 
+interface TaskTrackerDocument {
+  preludeText: string;   // all text before the first task (instructions, intro, etc.)
+  tasks: Task[];
+}
+
 interface TaskTracker {
-  loadTasks(): Task[];
+  loadDocument(): TaskTrackerDocument;
+
   pickNextTask(tasks: Task[]): Task | null;
+
   markDone(tasks: Task[], taskId: string, commitSha: string): Task[];
   markBlocked(tasks: Task[], taskId: string, reason: string, commitSha?: string): Task[];
-  saveTasks(tasks: Task[]): void;
+
+  saveDocument(doc: TaskTrackerDocument): void;
 }
 
 

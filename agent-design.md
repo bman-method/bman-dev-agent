@@ -102,7 +102,38 @@ This contract will be referenced by both:
 
 ---
 
-### 4. Prompt Strategy
+### 4. Task tracker refactor
+Change TaskTracker to expose:
+preludeText (raw text before tasks)
+completedTasks (or enough info to derive them)
+Update interfaces accordingly
+Keep parsing stable; do not change task IDs/status format
+see:
+
+```
+/* =========
+ * TASK TRACKER (UPDATED)
+ * ========= */
+
+interface TaskTrackerDocument {
+  preludeText: string;   // all text before the first task (instructions, intro, etc.)
+  tasks: Task[];
+}
+
+interface TaskTracker {
+  loadDocument(): TaskTrackerDocument;
+
+  pickNextTask(tasks: Task[]): Task | null;
+
+  markDone(tasks: Task[], taskId: string, commitSha: string): Task[];
+  markBlocked(tasks: Task[], taskId: string, reason: string, commitSha?: string): Task[];
+
+  saveDocument(doc: TaskTrackerDocument): void;
+}
+
+```
+
+### 5. Prompt Strategy
 - Build a prompt that:
   - Explains the task
   - Explains the output contract
@@ -114,7 +145,7 @@ The prompt must be deterministic and concise.
 
 ---
 
-### 5. Codex Agent Adapter
+### 6. Codex Agent Adapter
 - Implement the `CodeAgent` interface
 - Send the prompt to Codex
 - Wait for completion
@@ -123,7 +154,7 @@ The prompt must be deterministic and concise.
 
 ---
 
-### 6. Result Reader
+### 7. Result Reader
 - Read the output JSON file
 - Do not validate
 - Do not normalize
@@ -131,7 +162,7 @@ The prompt must be deterministic and concise.
 
 ---
 
-### 7. Result Validator
+### 8. Result Validator
 - Validate structure against the output contract
 - Normalize fields into the `AgentOutput` type
 - Fail loudly if anything is missing or malformed
@@ -140,7 +171,7 @@ This is a critical trust boundary.
 
 ---
 
-### 8. Commit Message Formatter
+### 9. Commit Message Formatter
 - Create a clean commit title
 - Create a commit body that:
   - Starts with the human-style commit message
@@ -149,7 +180,7 @@ This is a critical trust boundary.
 
 ---
 
-### 9. Git Ops
+### 10. Git Ops
 - Ensure clean working tree
 - Create commit
 - Push (can be a no-op implementation if desired)
@@ -158,7 +189,7 @@ Git is the **source of truth**, not the agent.
 
 ---
 
-### 10. CLI Wiring
+### 11. CLI Wiring
 - Simple CLI to run:
   - one task
   - all tasks sequentially
