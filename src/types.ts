@@ -5,7 +5,7 @@ export interface Config {
 }
 
 export interface ConfigLoader {
-  load(): Config;
+  load(branchName: string): Config;
   validate(config: Config): void;
 }
 
@@ -98,6 +98,7 @@ export interface CommitMessageFormatter {
 }
 
 export interface GitOps {
+  getCurrentBranchName(): string;
   ensureCleanWorkingTree(): void;
   commit(title: string, body: string): string; // returns sha
   push(): void;
@@ -110,6 +111,7 @@ export interface Orchestrator {
 
 export interface OrchestratorDeps {
   configLoader: ConfigLoader;
+  branchName: string;
   taskTracker: TaskTracker;
   promptStrategy: PromptStrategy;
   runContextFactory: RunContextFactory;

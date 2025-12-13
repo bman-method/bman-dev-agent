@@ -14,8 +14,10 @@ function makeTrackerDocument(): TaskTrackerDocument {
 function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
   const trackerDocument = makeTrackerDocument();
   const config: Config = { agent: "codex", tasksFile: "tasks.md", outputDir: ".out" };
+  const branchName = overrides.branchName ?? "main";
 
   const deps: OrchestratorDeps = {
+    branchName,
     configLoader: {
       load: jest.fn(() => config),
       validate: jest.fn(),
@@ -74,6 +76,7 @@ function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
       formatBody: jest.fn(() => "body"),
     },
     git: {
+      getCurrentBranchName: jest.fn(() => branchName),
       ensureCleanWorkingTree: jest.fn(),
       commit: jest.fn(() => "sha123"),
       push: jest.fn(),
@@ -109,7 +112,7 @@ describe("DefaultOrchestrator", () => {
 
     await orchestrator.runOnce();
 
-    expect(deps.configLoader.load).toHaveBeenCalled();
+    expect(deps.configLoader.load).toHaveBeenCalledWith("main");
     expect(deps.configLoader.validate).toHaveBeenCalled();
     expect(deps.taskTracker.loadDocument).toHaveBeenCalled();
     expect(deps.git.ensureCleanWorkingTree).toHaveBeenCalled();

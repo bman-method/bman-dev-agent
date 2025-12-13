@@ -6,16 +6,21 @@ import { getDefaultTasksFilePath } from "./tasksFile";
 export class DefaultConfigLoader implements ConfigLoader {
   constructor(private readonly configPath: string = path.join(".bman", "config.json")) {}
 
-  load(): Config {
+  load(branchName: string): Config {
     const resolvedPath = path.resolve(this.configPath);
     const configDir = path.dirname(resolvedPath);
 
     ensureDirectory(configDir);
 
     const fileConfig = readConfigFile(resolvedPath);
+    const trimmedBranchName = branchName.trim();
+    if (!fileConfig.tasksFile && !trimmedBranchName) {
+      throw new Error("Branch name is required to determine default tasks file path.");
+    }
 
     const agent = (fileConfig.agent ?? "codex").toLowerCase();
-    const tasksFile = fileConfig.tasksFile ?? getDefaultTasksFilePath(configDir);
+    const tasksFile =
+      fileConfig.tasksFile ?? getDefaultTasksFilePath(trimmedBranchName, configDir);
     const outputDir = fileConfig.outputDir ?? path.join(configDir, "output");
 
     ensureDirectory(resolveDir(outputDir));

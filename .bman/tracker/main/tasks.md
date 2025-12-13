@@ -102,5 +102,5 @@ I don't care about all the rules, but I do care for:
 * Not allowing untyped things
 Make sure that during this task you also run the auto fix, and if it fails, fix manually the things that must be fixed.
 
-- [ ] TASK-26: Refactor: Do not execute git command in taskFile.ts. The only component that allowed to run git is the GitOps.ts. I think its better to make the orchestrator to pass the current branch name to the config loader and it will pass to getDefaultTasksFilePath function.
-In addition, please remove the BMAN_BRANCH fallback. You can add start up validation in the CLI that git is available and that it's possible to get the current branch name. If not, then exit with an error message and non 0 exit code. 
+- [x] TASK-26: Refactor: Do not execute git command in taskFile.ts. The only component that allowed to run git is the GitOps.ts. I think its better to make the orchestrator to pass the current branch name to the config loader and it will pass to getDefaultTasksFilePath function.
+In addition, please remove the BMAN_BRANCH fallback. You can add start up validation in the CLI that git is available and that it's possible to get the current branch name. If not, then exit with an error message and non 0 exit code.

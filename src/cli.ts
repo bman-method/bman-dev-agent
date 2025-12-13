@@ -13,7 +13,9 @@ import { DefaultTaskTracker } from "./taskTracker";
 import {
   CLI,
   CLIOptions,
+  Config,
   ConfigLoader,
+  GitOps,
   Orchestrator,
   OrchestratorDeps,
   OrchestratorFactory,
@@ -26,6 +28,7 @@ interface CLIOverrides {
   orchestratorFactory?: OrchestratorFactory;
   configLoader?: ConfigLoader;
   taskTracker?: TaskTracker;
+  git?: GitOps;
 }
 
 export class DefaultCLI implements CLI {
@@ -42,7 +45,13 @@ export class DefaultCLI implements CLI {
       throw new Error(`Unsupported agent "${options.agent}". Only "codex" is supported.`);
     }
 
-    const { configLoader, taskTracker, document } = this.loadTaskContext();
+    const git = this.overrides.git ?? new DefaultGitOps(process.cwd(), options.push === true);
+    const branchName = this.getBranchNameOrExit(git);
+    if (!branchName) {
+      return;
+    }
+
+    const { configLoader, taskTracker, document } = this.loadTaskContext(branchName);
 
     const hasBlockedTask = document.tasks.some((task) => task.status === "blocked");
     if (hasBlockedTask) {
@@ -59,7 +68,7 @@ export class DefaultCLI implements CLI {
 
     const orchestrator =
       this.overrides.orchestrator ??
-      this.createOrchestrator(configLoader, taskTracker, options.push === true);
+      this.createOrchestrator(branchName, configLoader, taskTracker, git);
 
     if (options.all) {
       await orchestrator.runAll();
@@ -69,35 +78,42 @@ export class DefaultCLI implements CLI {
     await orchestrator.runOnce();
   }
 
-  private loadTaskContext(): {
+  private loadTaskContext(branchName: string): {
     configLoader: ConfigLoader;
+    config: Config;
     taskTracker: TaskTracker;
     document: TaskTrackerDocument;
   } {
     const configLoader = this.overrides.configLoader ?? new DefaultConfigLoader();
-    const config = configLoader.load();
+    const config = configLoader.load(branchName);
     configLoader.validate(config);
 
     const taskTracker = this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
     const document = taskTracker.loadDocument();
 
-    return { configLoader, taskTracker, document };
+    return { configLoader, config, taskTracker, document };
   }
 
   private createOrchestrator(
-    configLoader?: ConfigLoader,
-    taskTracker?: TaskTracker,
-    pushEnabled = false
+    branchName: string,
+    configLoader: ConfigLoader,
+    taskTracker: TaskTracker,
+    git: GitOps
   ): Orchestrator {
     const resolvedConfigLoader = configLoader ?? this.overrides.configLoader ?? new DefaultConfigLoader();
-    const config = resolvedConfigLoader.load();
-    resolvedConfigLoader.validate(config);
-
+    const resolvedGit = git ?? this.overrides.git ?? new DefaultGitOps(process.cwd());
     const resolvedTaskTracker =
-      taskTracker ?? this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
+      taskTracker ??
+      this.overrides.taskTracker ??
+      (() => {
+        const trackerConfig = resolvedConfigLoader.load(branchName);
+        resolvedConfigLoader.validate(trackerConfig);
+        return new DefaultTaskTracker(trackerConfig.tasksFile);
+      })();
 
     const deps: OrchestratorDeps = {
       configLoader: resolvedConfigLoader,
+      branchName,
       taskTracker: resolvedTaskTracker,
       promptStrategy: new DefaultPromptStrategy(),
       runContextFactory: new DefaultRunContextFactory(),
@@ -106,11 +122,22 @@ export class DefaultCLI implements CLI {
       resultReader: new DefaultResultReader(),
       resultValidator: new DefaultResultValidator(),
       commitFormatter: new DefaultCommitMessageFormatter(),
-      git: new DefaultGitOps(process.cwd(), pushEnabled),
+      git: resolvedGit,
     };
 
     const factory = this.overrides.orchestratorFactory ?? new DefaultOrchestratorFactory();
     return factory.create(deps);
+  }
+
+  private getBranchNameOrExit(git: GitOps): string | null {
+    try {
+      return git.getCurrentBranchName();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`Git is required to run bman-dev-agent: ${message}`);
+      process.exitCode = 1;
+      return null;
+    }
   }
 }
 

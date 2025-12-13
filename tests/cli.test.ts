@@ -1,12 +1,23 @@
 import { DefaultCLI, parseArgs } from "../src/cli";
+import { DefaultGitOps } from "../src/gitOps";
 import { Task } from "../src/types";
 
 const baseConfig = { agent: "codex", tasksFile: "tasks.md", outputDir: ".out" };
 
 function makeConfigLoader(): { load: jest.Mock; validate: jest.Mock } {
   return {
-    load: jest.fn(() => ({ ...baseConfig })),
+    load: jest.fn((_branch: string) => ({ ...baseConfig })),
     validate: jest.fn(),
+  };
+}
+
+function makeGit(branch = "main", pushEnabled = false) {
+  return {
+    pushEnabled,
+    getCurrentBranchName: jest.fn(() => branch),
+    ensureCleanWorkingTree: jest.fn(),
+    commit: jest.fn(),
+    push: jest.fn(),
   };
 }
 
@@ -54,10 +65,12 @@ describe("DefaultCLI", () => {
     const taskTracker = makeTaskTracker([
       { id: "T1", title: "Task", description: "", status: "open" },
     ]);
+    const git = makeGit();
     const cli = new DefaultCLI({
       orchestrator: { runOnce, runAll },
       configLoader,
       taskTracker,
+      git,
     });
 
     await cli.run({});
@@ -73,10 +86,12 @@ describe("DefaultCLI", () => {
     const taskTracker = makeTaskTracker([
       { id: "T1", title: "Task", description: "", status: "open" },
     ]);
+    const git = makeGit();
     const cli = new DefaultCLI({
       orchestrator: { runOnce, runAll },
       configLoader,
       taskTracker,
+      git,
     });
 
     await cli.run({ all: true });
@@ -112,7 +127,8 @@ describe("DefaultCLI", () => {
       { id: "T1", title: "t", description: "", status: "done" },
     ]);
     const orchestratorFactory = { create: jest.fn() };
-    const cli = new DefaultCLI({ configLoader, taskTracker, orchestratorFactory });
+    const git = makeGit();
+    const cli = new DefaultCLI({ configLoader, taskTracker, orchestratorFactory, git });
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     await cli.run({});
@@ -130,10 +146,12 @@ describe("DefaultCLI", () => {
       { id: "T1", title: "Blocked task", description: "", status: "blocked" },
       { id: "T2", title: "Open task", description: "", status: "open" },
     ]);
+    const git = makeGit();
     const cli = new DefaultCLI({
       orchestrator: { runOnce, runAll },
       configLoader,
       taskTracker,
+      git,
     });
     const originalExitCode = process.exitCode;
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
@@ -166,9 +184,16 @@ describe("DefaultCLI", () => {
         return { runOnce, runAll };
       }),
     };
+    const branchSpy = jest
+      .spyOn(DefaultGitOps.prototype, "getCurrentBranchName")
+      .mockReturnValue("main");
     const cli = new DefaultCLI({ orchestratorFactory, configLoader, taskTracker });
 
-    await cli.run({ push: true });
+    try {
+      await cli.run({ push: true });
+    } finally {
+      branchSpy.mockRestore();
+    }
 
     expect(runOnce).toHaveBeenCalled();
     expect((gitInstance as any).pushEnabled).toBe(true);

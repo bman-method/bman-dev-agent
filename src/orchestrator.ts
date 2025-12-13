@@ -5,8 +5,8 @@ export class OrchestratorError extends Error {
 export class DefaultOrchestrator implements Orchestrator {
     constructor(private readonly deps: OrchestratorDeps) { }
     async runOnce(): Promise<void> {
-        const { configLoader, taskTracker, promptStrategy, runContextFactory, contract, agent, resultReader, resultValidator, commitFormatter, git, } = this.deps;
-        const config = configLoader.load();
+        const { configLoader, branchName, taskTracker, promptStrategy, runContextFactory, contract, agent, resultReader, resultValidator, commitFormatter, git, } = this.deps;
+        const config = configLoader.load(branchName);
         configLoader.validate(config);
         const trackerDocument = taskTracker.loadDocument();
         const task = taskTracker.pickNextTask(trackerDocument.tasks);

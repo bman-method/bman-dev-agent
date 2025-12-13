@@ -1,10 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Task, TaskTracker, TaskTrackerDocument } from "./types";
-import { getDefaultTasksFilePath } from "./tasksFile";
 type TaskStatus = Task["status"];
 export class DefaultTaskTracker implements TaskTracker {
-    constructor(private readonly tasksFile: string = getDefaultTasksFilePath()) { }
+    constructor(private readonly tasksFile: string) { }
     loadDocument(): TaskTrackerDocument {
         const fullPath = this.resolvePath();
         const content = fs.readFileSync(fullPath, "utf8");

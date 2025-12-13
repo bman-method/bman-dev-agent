@@ -7,6 +7,21 @@ export class DefaultGitOps implements GitOps {
     private readonly pushEnabled: boolean = false
   ) {}
 
+  getCurrentBranchName(): string {
+    try {
+      const branch = this.runGit(["rev-parse", "--abbrev-ref", "HEAD"]).trim();
+      if (branch && branch !== "HEAD") {
+        return branch;
+      }
+
+      const sha = this.runGit(["rev-parse", "--short", "HEAD"]).trim();
+      return sha ? `detached-${sha}` : "detached-head";
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(`Unable to determine current git branch: ${reason}`);
+    }
+  }
+
   ensureCleanWorkingTree(): void {
     const output = this.runGit(["status", "--porcelain"]);
     if (output.trim() !== "") {
