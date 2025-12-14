@@ -179,7 +179,7 @@ maxLines: 20,
 Will do the trick.
 It will require refactor of types to get rid of the aiThoughts object and replace it with flat properties.
 
-- [ ] TASK-29: Improve readme.md
+- [x] TASK-29: Improve readme.md
 The readme is lacking the description of the workflow with the tool which is:
 * Define tasks in the tasks.md file of the branch
 * Let bman-dev-agent perform those tasks sequentially and produce a detailed commit per task

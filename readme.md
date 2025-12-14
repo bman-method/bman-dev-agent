@@ -14,3 +14,13 @@ Developer-controlled CLI that runs a single coding task at a time using the B-MA
 - Build once: `npm run build`
 - Configure (optional): `.bman/config.json` sets `tasksFile` and `outputDir` (defaults created automatically; tracker defaults to `.bman/tracker/<branch>/tasks.md` based on the current git branch).
 - Run the next task: `node dist/cli.js` (or `./bin/bman-dev-agent`) for one task, `node dist/cli.js --all` to run sequentially until a block/failure. Add `--push` to push commits after each task (opt-in).
+
+## Workflow
+- Define tasks in the branch's tracker (`.bman/tracker/<branch>/tasks.md`), keeping one clear task per run so outputs stay deterministic.
+- Let `bman-dev-agent` execute tasks sequentially (single run or `--all`), producing a dedicated commit per task with the tracker update included.
+- Review every task commit: the commit format, tracker status, and saved AI thoughts make it fast to spot intent, reasoning, and gaps.
+- If you find an issue, choose how to respond:
+  - Option 1: add an improvement task that fixes the issue, like a regular human code review follow-up.
+  - Option 2: `git reset` to the last commit that passed review, then tighten the task description so the next run avoids the problem.
+- Resetting is sometimes the better path: it preserves a clean history and forces clearer task definitions, often yielding a better solution than incremental fixes.
+- Human review remains essential - this tool keeps work isolated and documented so you can audit commits quickly before letting the next task run.
