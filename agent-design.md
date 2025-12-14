@@ -56,15 +56,14 @@ Refer to:
 The agent **does not return text**.
 
 It must write a JSON file to the path provided in the prompt, containing:
-- `taskId`
+- `taskId` (string)
 - `status` (`success | blocked | failed`)
-- `commitMessage`
-- `aiThoughts` with sections:
-  - `changesMade`
-  - `assumptions`
-  - `decisionsTaken`
-  - `pointsOfUnclarity`
-  - `testsRun`
+- `commitMessage` (string)
+- `changesMade` (string)
+- `assumptions` (string)
+- `decisionsTaken` (string)
+- `pointsOfUnclarity` (string)
+- `testsRun` (string)
 
 This contract is enforced by the validator.
 The orchestrator only works with the validated, typed output.

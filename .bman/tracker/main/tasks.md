@@ -152,27 +152,28 @@ Do not assume correctness, completeness, or production readiness.
 
 Human review is required.
 ```
-- [ ] TASK-28: Enforce types in the contract prompt.
+
+- [x] TASK-28: Enforce types in the contract prompt.
 See: DefaultOutputContract class. It does not strictly requests string format to all the properties.
 Therefore the model sometimes produces the output with string array instead of string.
-To make it simpler for the model to handle the task of building this json I'd like to avoid the nested 
+To make it simpler for the model to handle the task of building this json I'd like to avoid the nested
 aiThoughts object and have the contract built only from primitive types.
 In addition, as part of the description of each property, we should tell what is it's type.
 
 I believe that changing the field's record from:
 ```
 {
-      name: "aiThoughts.changesMade",
-      descriptionOfContent: "What changed in this task; keep concise but specific.",
-      maxLines: 20,
+name: "aiThoughts.changesMade",
+descriptionOfContent: "What changed in this task; keep concise but specific.",
+maxLines: 20,
 }
 ```
 To:
 ```
 {
-      name: "changesMade",
-      descriptionOfContent: "(type: string), What changed in this task; keep concise but specific.",
-      maxLines: 20,
+name: "changesMade",
+descriptionOfContent: "(type: string), What changed in this task; keep concise but specific.",
+maxLines: 20,
 }
 ```
 Will do the trick.
@@ -184,11 +185,11 @@ The readme is lacking the description of the workflow with the tool which is:
 * Let bman-dev-agent perform those tasks sequentially and produce a detailed commit per task
 * Review all the commits
 * In case of an issue there are 2 options:
-  * Option 1: 
-     - Add improvement task that will fix the issue (like it is done in regular human code reviews)
-  * Option 2: 
-     - perform git reset to the last commit that passed the review
-     - Improve the task description to avoid this issue from poping up, next time the model implements the task.
+* Option 1:
+- Add improvement task that will fix the issue (like it is done in regular human code reviews)
+* Option 2:
+- perform git reset to the last commit that passed the review
+- Improve the task description to avoid this issue from poping up, next time the model implements the task.
 
 * It's need to be explained that sometimes reset is the better choice because we can get cleaner solution and it also makes us better in defining tasks.
 * Also emphasise how important is the human review of all the tasks and how the tool makes it wasy to do it quickly.

@@ -107,19 +107,15 @@ interface CodeAgent {
 
 type RawAgentResult = unknown;
 
-interface AiThoughts {
+interface AgentOutput {
+  taskId: string;
+  status: "success" | "blocked" | "failed";
+  commitMessage: string;
   changesMade: string;
   assumptions: string;
   decisionsTaken: string;
   pointsOfUnclarity: string;
   testsRun: string;
-}
-
-interface AgentOutput {
-  taskId: string;
-  status: "success" | "blocked" | "failed";
-  commitMessage: string;
-  aiThoughts: AiThoughts;
 }
 
 

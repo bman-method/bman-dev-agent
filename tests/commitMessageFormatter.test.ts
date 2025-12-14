@@ -41,7 +41,7 @@ describe("DefaultCommitMessageFormatter", () => {
       taskId: task.id,
       status: "success",
       commitMessage: "Add new feature\n\nImplement the feature body",
-      aiThoughts: thoughts,
+      ...thoughts,
     };
 
     expect(formatter.formatTitle(task, output)).toBe("TASK-1 [completed]: Add new feature");
@@ -68,7 +68,7 @@ describe("DefaultCommitMessageFormatter", () => {
       taskId: task.id,
       status: "blocked",
       commitMessage: "",
-      aiThoughts: emptyThoughts,
+      ...emptyThoughts,
     };
 
     expect(formatter.formatTitle(task, output)).toBe("TASK-1 [blocked]: Task ended with status: blocked");
@@ -90,18 +90,16 @@ describe("DefaultCommitMessageFormatter", () => {
     );
   });
 
-  it("uses aiThoughts as fallback reason when commitMessage is empty", () => {
+  it("uses structured thoughts as fallback reason when commitMessage is empty", () => {
     const output: AgentOutput = {
       taskId: task.id,
       status: "failed",
       commitMessage: "",
-      aiThoughts: {
-        changesMade: "Blocked on DB migration",
-        assumptions: "None",
-        decisionsTaken: "Escalate to infra",
-        pointsOfUnclarity: "Deployment window unclear",
-        testsRun: "Investigating rollout",
-      },
+      changesMade: "Blocked on DB migration",
+      assumptions: "None",
+      decisionsTaken: "Escalate to infra",
+      pointsOfUnclarity: "Deployment window unclear",
+      testsRun: "Investigating rollout",
     };
 
     expect(formatter.formatTitle(task, output)).toBe(

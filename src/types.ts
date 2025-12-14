@@ -50,14 +50,6 @@ export interface OutputContractField {
   maxLines?: number;
 }
 
-export interface AiThoughts {
-  changesMade: string;
-  assumptions: string;
-  decisionsTaken: string;
-  pointsOfUnclarity: string;
-  testsRun: string;
-}
-
 export interface PromptInput {
   task: Task;
   config: Config;
@@ -81,7 +73,11 @@ export interface AgentOutput {
   taskId: string;
   status: "success" | "blocked" | "failed";
   commitMessage: string;
-  aiThoughts: AiThoughts;
+  changesMade: string;
+  assumptions: string;
+  decisionsTaken: string;
+  pointsOfUnclarity: string;
+  testsRun: string;
 }
 
 export interface ResultReader {

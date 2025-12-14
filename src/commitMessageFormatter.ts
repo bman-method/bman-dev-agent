@@ -1,4 +1,9 @@
-import { AiThoughts, AgentOutput, CommitMessageFormatter, Task } from "./types";
+import { AgentOutput, CommitMessageFormatter, Task } from "./types";
+
+type ThoughtFields = Pick<
+  AgentOutput,
+  "changesMade" | "assumptions" | "decisionsTaken" | "pointsOfUnclarity" | "testsRun"
+>;
 
 export function deriveHumanMessage(task: Task, output: AgentOutput): string {
   const commitMessage = output.commitMessage.trim();
@@ -10,9 +15,9 @@ export function deriveHumanMessage(task: Task, output: AgentOutput): string {
     return task.title;
   }
 
-  const aiThoughts = output.aiThoughts;
-  const formattedThoughts = formatAiThoughts(aiThoughts);
-  if (hasAiThoughtContent(aiThoughts)) {
+  const thoughts = pickThoughts(output);
+  const formattedThoughts = formatThoughts(thoughts);
+  if (hasThoughtContent(thoughts)) {
     return formattedThoughts;
   }
 
@@ -61,16 +66,17 @@ export class DefaultCommitMessageFormatter implements CommitMessageFormatter {
   formatBody(task: Task, output: AgentOutput): string {
     const { title: agentTitle, body: agentBody } = parseCommitMessage(output.commitMessage);
     const humanMessage = agentBody || (agentTitle ? "" : deriveHumanMessage(task, output));
-    const thoughts = formatAiThoughts(output.aiThoughts);
-    const aiThoughtsSection = formatAiThoughtsSection(output.aiThoughts);
+    const thoughts = pickThoughts(output);
+    const thoughtsContent = formatThoughts(thoughts);
+    const thoughtsSection = formatThoughtsSection(thoughts);
 
     const sections = [
       (() => {
         const normalized = humanMessage.trim();
-        return normalized === thoughts ? "" : normalized;
+        return normalized === thoughtsContent ? "" : normalized;
       })(),
       "---",
-      aiThoughtsSection,
+      thoughtsSection,
       AI_COMMIT_WARNING,
     ].filter((section) => section !== "");
 
@@ -78,7 +84,17 @@ export class DefaultCommitMessageFormatter implements CommitMessageFormatter {
   }
 }
 
-function formatAiThoughts(thoughts: AiThoughts): string {
+function pickThoughts(output: AgentOutput): ThoughtFields {
+  return {
+    changesMade: output.changesMade,
+    assumptions: output.assumptions,
+    decisionsTaken: output.decisionsTaken,
+    pointsOfUnclarity: output.pointsOfUnclarity,
+    testsRun: output.testsRun,
+  };
+}
+
+function formatThoughts(thoughts: ThoughtFields): string {
   const entries: Array<[string, string]> = [
     ["Changes made", thoughts.changesMade],
     ["Assumptions", thoughts.assumptions],
@@ -96,16 +112,16 @@ function formatAiThoughts(thoughts: AiThoughts): string {
     .trim();
 }
 
-function formatAiThoughtsSection(thoughts: AiThoughts): string {
+function formatThoughtsSection(thoughts: ThoughtFields): string {
   const entries = [
     "AI Thoughts",
     "-----------",
-    ...formatAiThoughts(thoughts).split("\n"),
+    ...formatThoughts(thoughts).split("\n"),
   ];
 
   return entries.join("\n");
 }
 
-function hasAiThoughtContent(thoughts: AiThoughts): boolean {
+function hasThoughtContent(thoughts: ThoughtFields): boolean {
   return Object.values(thoughts).some((value) => value.trim() !== "");
 }

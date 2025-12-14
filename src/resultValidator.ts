@@ -1,11 +1,4 @@
-import { AiThoughts, AgentOutput, OutputContract, OutputContractField, RawAgentResult, ResultValidator, } from "./types";
-const AI_THOUGHT_FIELDS: Array<keyof AiThoughts> = [
-    "changesMade",
-    "assumptions",
-    "decisionsTaken",
-    "pointsOfUnclarity",
-    "testsRun",
-];
+import { AgentOutput, OutputContract, OutputContractField, RawAgentResult, ResultValidator } from "./types";
 export class DefaultResultValidator implements ResultValidator {
     validate(raw: RawAgentResult, contract: OutputContract): AgentOutput {
         if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
@@ -16,10 +9,30 @@ export class DefaultResultValidator implements ResultValidator {
         const taskId = expectString(obj.taskId, "taskId");
         const status = expectStatus(obj.status);
         const commitMessage = expectString(obj.commitMessage, "commitMessage");
-        const aiThoughts = expectAiThoughts(obj.aiThoughts);
-        enforceMaxLines(commitMessage, contract, "commitMessage");
-        AI_THOUGHT_FIELDS.forEach((field) => enforceMaxLines(aiThoughts[field], contract, `aiThoughts.${field}`));
-        return { taskId, status, commitMessage, aiThoughts };
+        const changesMade = expectString(obj.changesMade, "changesMade");
+        const assumptions = expectString(obj.assumptions, "assumptions");
+        const decisionsTaken = expectString(obj.decisionsTaken, "decisionsTaken");
+        const pointsOfUnclarity = expectString(obj.pointsOfUnclarity, "pointsOfUnclarity");
+        const testsRun = expectString(obj.testsRun, "testsRun");
+        const lineLimitedFields: Array<[keyof AgentOutput, string]> = [
+            ["commitMessage", commitMessage],
+            ["changesMade", changesMade],
+            ["assumptions", assumptions],
+            ["decisionsTaken", decisionsTaken],
+            ["pointsOfUnclarity", pointsOfUnclarity],
+            ["testsRun", testsRun],
+        ];
+        lineLimitedFields.forEach(([fieldName, value]) => enforceMaxLines(value, contract, fieldName));
+        return {
+            taskId,
+            status,
+            commitMessage,
+            changesMade,
+            assumptions,
+            decisionsTaken,
+            pointsOfUnclarity,
+            testsRun,
+        };
     }
 }
 function ensureFields(obj: Record<string, unknown>, fields: OutputContractField[]): void {
@@ -50,22 +63,6 @@ function expectString(value: unknown, field: string): string {
         throw new Error(`Field "${field}" must be a string.`);
     }
     return value;
-}
-function expectAiThoughts(value: unknown): AiThoughts {
-    if (value === null || typeof value !== "object" || Array.isArray(value)) {
-        throw new Error('Field "aiThoughts" must be an object containing structured sections.');
-    }
-    const obj = value as Record<string, unknown>;
-    const thoughts: Partial<AiThoughts> = {};
-    for (const section of AI_THOUGHT_FIELDS) {
-        const sectionValue = obj[section];
-        const fieldName = `aiThoughts.${section}`;
-        if (typeof sectionValue !== "string") {
-            throw new Error(`Field "${fieldName}" must be a string.`);
-        }
-        thoughts[section] = sectionValue;
-    }
-    return thoughts as AiThoughts;
 }
 function expectStatus(value: unknown): AgentOutput["status"] {
     if (value !== "success" && value !== "blocked" && value !== "failed") {
