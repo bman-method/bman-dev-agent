@@ -155,6 +155,10 @@ Human review is required.
 - [ ] TASK-28: Enforce types in the contract prompt.
 See: DefaultOutputContract class. It does not strictly requests string format to all the properties.
 Therefore the model sometimes produces the output with string array instead of string.
+To make it simpler for the model to handle the task of building this json I'd like to avoid the nested 
+aiThoughts object and have the contract built only from primitive types.
+In addition, as part of the description of each property, we should tell what is it's type.
+
 I believe that changing the field's record from:
 ```
 {
@@ -166,12 +170,13 @@ I believe that changing the field's record from:
 To:
 ```
 {
-      name: "aiThoughts.changesMade",
+      name: "changesMade",
       descriptionOfContent: "(type: string), What changed in this task; keep concise but specific.",
       maxLines: 20,
 }
 ```
 Will do the trick.
+It will require refactor of types to get rid of the aiThoughts object and replace it with flat properties.
 
 - [ ] TASK-29: Improve readme.md
 The readme is lacking the description of the workflow with the tool which is:
