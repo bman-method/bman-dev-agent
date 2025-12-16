@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Task, TaskTracker, TaskTrackerDocument } from "./types";
-type TaskStatus = Task["status"];
+import { Task, TaskStatus, TaskTracker, TaskTrackerDocument } from "./types";
 export class DefaultTaskTracker implements TaskTracker {
     constructor(private readonly tasksFile: string) { }
 
@@ -48,13 +47,13 @@ export class DefaultTaskTracker implements TaskTracker {
         return path.resolve(this.tasksFile);
     }
 }
-const STATUS_SYMBOL_TO_STATUS: Record<string, Task["status"]> = {
+const STATUS_SYMBOL_TO_STATUS: Record<string, TaskStatus> = {
     " ": "open",
     x: "done",
     "!": "blocked",
     "": "open",
 };
-const STATUS_TO_SYMBOL: Record<Task["status"], string> = {
+const STATUS_TO_SYMBOL: Record<TaskStatus, string> = {
     open: " ",
     done: "x",
     blocked: "!",

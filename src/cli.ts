@@ -31,6 +31,13 @@ interface CLIOverrides {
   git?: GitOps;
 }
 
+type TaskContext = {
+  configLoader: ConfigLoader;
+  config: Config;
+  taskTracker: TaskTracker;
+  document: TaskTrackerDocument;
+};
+
 export class DefaultCLI implements CLI {
   constructor(private readonly overrides: CLIOverrides = {}) {}
 
@@ -78,12 +85,7 @@ export class DefaultCLI implements CLI {
     await orchestrator.runOnce();
   }
 
-  private loadTaskContext(branchName: string): {
-    configLoader: ConfigLoader;
-    config: Config;
-    taskTracker: TaskTracker;
-    document: TaskTrackerDocument;
-  } {
+  private loadTaskContext(branchName: string): TaskContext {
     const configLoader = this.overrides.configLoader ?? new DefaultConfigLoader();
     const config = configLoader.load(branchName);
     configLoader.validate(config);

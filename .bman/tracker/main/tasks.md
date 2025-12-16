@@ -199,7 +199,7 @@ Please add an additional rule: keep 1 line space between functions.
 
 - [x] TASK-31: Remove the timestamp extraction from runId. Instead, add timestamp as a separate field in the runContext and use it.
 
-- [ ] TASK-32: Scan the code and refactor places that you use inline types.
+- [x] TASK-32: Scan the code and refactor places that you use inline types.
 For example: in commitMessageFormatter.ts you did:
 ```
 status: AgentOutput["status"]

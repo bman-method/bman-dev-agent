@@ -1,9 +1,20 @@
-import { AgentOutput, CommitMessageFormatter, Task } from "./types";
+import {
+  AgentOutput,
+  AgentOutputStatus,
+  CommitMessageFormatter,
+  CommitStatusLabel,
+  Task,
+} from "./types";
 
 type ThoughtFields = Pick<
   AgentOutput,
   "changesMade" | "assumptions" | "decisionsTaken" | "pointsOfUnclarity" | "testsRun"
 >;
+
+type CommitMessageParts = {
+  title: string;
+  body: string;
+};
 
 export function deriveHumanMessage(task: Task, output: AgentOutput): string {
   const commitMessage = output.commitMessage.trim();
@@ -28,7 +39,7 @@ function normalizeSingleLine(message: string): string {
   return message.replace(/\s+/g, " ").trim();
 }
 
-function parseCommitMessage(message: string): { title: string; body: string } {
+function parseCommitMessage(message: string): CommitMessageParts {
   const trimmed = message.trim();
   if (!trimmed) {
     return { title: "", body: "" };
@@ -41,7 +52,7 @@ function parseCommitMessage(message: string): { title: string; body: string } {
   return { title, body };
 }
 
-function toStatusLabel(status: AgentOutput["status"]): "completed" | "blocked" {
+function toStatusLabel(status: AgentOutputStatus): CommitStatusLabel {
   return status === "success" ? "completed" : "blocked";
 }
 

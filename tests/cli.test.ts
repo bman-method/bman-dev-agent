@@ -4,7 +4,9 @@ import { Task } from "../src/types";
 
 const baseConfig = { agent: "codex", tasksFile: "tasks.md", outputDir: ".out" };
 
-function makeConfigLoader(): { load: jest.Mock; validate: jest.Mock } {
+type MockConfigLoader = { load: jest.Mock; validate: jest.Mock };
+
+function makeConfigLoader(): MockConfigLoader {
   return {
     load: jest.fn((_branch: string) => ({ ...baseConfig })),
     validate: jest.fn(),

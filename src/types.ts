@@ -9,11 +9,13 @@ export interface ConfigLoader {
   validate(config: Config): void;
 }
 
+export type TaskStatus = "open" | "done" | "blocked";
+
 export interface Task {
   id: string;
   title: string;
   description: string;
-  status: "open" | "done" | "blocked";
+  status: TaskStatus;
 }
 
 export interface TaskTrackerDocument {
@@ -70,9 +72,11 @@ export interface CodeAgent {
 
 export type RawAgentResult = unknown;
 
+export type AgentOutputStatus = "success" | "blocked" | "failed";
+
 export interface AgentOutput {
   taskId: string;
-  status: "success" | "blocked" | "failed";
+  status: AgentOutputStatus;
   commitMessage: string;
   changesMade: string;
   assumptions: string;
@@ -88,6 +92,8 @@ export interface ResultReader {
 export interface ResultValidator {
   validate(raw: RawAgentResult, contract: OutputContract): AgentOutput;
 }
+
+export type CommitStatusLabel = "completed" | "blocked";
 
 export interface CommitMessageFormatter {
   formatTitle(task: Task, output: AgentOutput): string;

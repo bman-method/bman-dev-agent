@@ -18,11 +18,13 @@ interface ConfigLoader {
  * TASK TRACKER
  * ========= */
 
+type TaskStatus = "open" | "done" | "blocked";
+
 interface Task {
   id: string;
   title: string;
   description: string;
-  status: "open" | "done" | "blocked";
+  status: TaskStatus;
 }
 
 interface TaskTrackerDocument {
@@ -108,9 +110,11 @@ interface CodeAgent {
 
 type RawAgentResult = unknown;
 
+type AgentOutputStatus = "success" | "blocked" | "failed";
+
 interface AgentOutput {
   taskId: string;
-  status: "success" | "blocked" | "failed";
+  status: AgentOutputStatus;
   commitMessage: string;
   changesMade: string;
   assumptions: string;

@@ -1,4 +1,11 @@
-import { AgentOutput, OutputContract, OutputContractField, RawAgentResult, ResultValidator } from "./types";
+import {
+  AgentOutput,
+  AgentOutputStatus,
+  OutputContract,
+  OutputContractField,
+  RawAgentResult,
+  ResultValidator,
+} from "./types";
 export class DefaultResultValidator implements ResultValidator {
     validate(raw: RawAgentResult, contract: OutputContract): AgentOutput {
         if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
@@ -68,11 +75,15 @@ function expectString(value: unknown, field: string): string {
     return value;
 }
 
-function expectStatus(value: unknown): AgentOutput["status"] {
-    if (value !== "success" && value !== "blocked" && value !== "failed") {
+function expectStatus(value: unknown): AgentOutputStatus {
+    if (!isAgentOutputStatus(value)) {
         throw new Error(`Field "status" must be one of "success", "blocked", or "failed".`);
     }
     return value;
+}
+
+function isAgentOutputStatus(value: unknown): value is AgentOutputStatus {
+    return value === "success" || value === "blocked" || value === "failed";
 }
 
 function enforceMaxLines(content: string, contract: OutputContract, fieldName: string): void {
