@@ -268,6 +268,10 @@ export function parseArgs(argv: string[]): CLIOptions {
     throw new UsageError(`Unknown argument: ${arg}`);
   }
 
+  if (command) {
+    validateOptionsForCommand(command, options);
+  }
+
   if (!options.help && !command) {
     throw new UsageError("No command provided.");
   }
@@ -284,6 +288,20 @@ function parseCommand(value: string): CLICommand {
     return "add-task";
   }
   throw new UsageError(`Unknown command "${value}".`);
+}
+
+function validateOptionsForCommand(command: CLICommand, options: CLIOptions): void {
+  if (command !== "resolve") {
+    if (options.all) {
+      throw new UsageError("--all is only valid for the resolve command.");
+    }
+    if (options.push) {
+      throw new UsageError("--push is only valid for the resolve command.");
+    }
+    if (options.agent !== undefined) {
+      throw new UsageError("--agent is only valid for the resolve command.");
+    }
+  }
 }
 
 export async function main(): Promise<void> {
@@ -311,14 +329,17 @@ function printUsage(): void {
 Usage: bman-dev-agent <command> [options]
 
 Commands:
-  resolve         Resolve tasks using the Codex agent
+  resolve [options]
+                  Resolve tasks using the Codex agent
+    --all, -a     Run all tasks sequentially
+    --agent <name>
+                  Agent name (only "codex" supported; default: codex)
+    --push        Push commits after each task (opt-in)
+
   add-task <description>
                   Append a new open task to the current branch tracker
 
-Options:
-  --all, -a       Run all tasks sequentially
-  --agent <name>  Agent name (only "codex" supported; default: codex)
-  --push          Push commits after each task (opt-in)
+Global options:
   --help, -h      Show this help message
 `.trim();
   console.error(usage);

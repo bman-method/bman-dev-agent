@@ -8,5 +8,5 @@ then add the new task to the bottom of the tasks list and give it a number (+1 o
 
 - [x] TASK-2: Cover add-task CLI command with tests
 
-- [ ] TASK-3: Change usage such that the options will be related to the specific command
+- [x] TASK-3: Change usage such that the options will be related to the specific command
 * --all and --push are relevant only for "resolve" for example

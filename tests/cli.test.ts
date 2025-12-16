@@ -70,6 +70,18 @@ describe("parseArgs", () => {
     });
   });
 
+  it("rejects resolve-specific flags when using add-task", () => {
+    expect(() => parseArgs(["node", "cli.js", "add-task", "--all", "Write docs"])).toThrow(
+      /resolve/
+    );
+    expect(() => parseArgs(["node", "cli.js", "add-task", "--push", "Write docs"])).toThrow(
+      /resolve/
+    );
+    expect(() =>
+      parseArgs(["node", "cli.js", "add-task", "--agent", "codex", "Write docs"])
+    ).toThrow(/resolve/);
+  });
+
   it("throws on unknown arguments or missing agent value", () => {
     expect(() => parseArgs(["node", "cli.js", "resolve", "--unknown"])).toThrow(/Unknown argument/);
     expect(() => parseArgs(["node", "cli.js", "resolve", "--agent"])).toThrow(/Missing value/);
