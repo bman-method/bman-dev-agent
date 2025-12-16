@@ -130,9 +130,12 @@ export interface OrchestratorFactory {
   create(deps: OrchestratorDeps): Orchestrator;
 }
 
+export type CLICommand = "resolve";
+
 export interface CLIOptions {
   all?: boolean;
   agent?: string;
+  command?: CLICommand;
   help?: boolean;
   push?: boolean;
 }

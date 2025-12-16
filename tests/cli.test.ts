@@ -1,4 +1,4 @@
-import { DefaultCLI, parseArgs } from "../src/cli";
+import { DefaultCLI, UsageError, main, parseArgs } from "../src/cli";
 import { DefaultGitOps } from "../src/gitOps";
 import { Task } from "../src/types";
 
@@ -34,28 +34,35 @@ function makeTaskTracker(tasks: Task[]) {
 }
 
 describe("parseArgs", () => {
-  it("returns empty options when no flags provided", () => {
-    expect(parseArgs(["node", "cli.js"])).toEqual({});
+  it("requires a command when not requesting help", () => {
+    expect(() => parseArgs(["node", "cli.js"])).toThrow(UsageError);
   });
 
-  it("parses --all, --agent, and --help flags", () => {
-    expect(parseArgs(["node", "cli.js", "--all", "--agent", "codex"])).toEqual({
+  it("parses resolve command and flags", () => {
+    expect(parseArgs(["node", "cli.js", "resolve"])).toEqual({ command: "resolve" });
+
+    expect(parseArgs(["node", "cli.js", "resolve", "--all", "--agent", "codex"])).toEqual({
       all: true,
       agent: "codex",
+      command: "resolve",
     });
 
-    expect(parseArgs(["node", "cli.js", "-a", "--agent=codex"])).toEqual({
+    expect(parseArgs(["node", "cli.js", "resolve", "-a", "--agent=codex"])).toEqual({
       all: true,
       agent: "codex",
+      command: "resolve",
     });
 
     expect(parseArgs(["node", "cli.js", "--help"])).toEqual({ help: true });
-    expect(parseArgs(["node", "cli.js", "--push"])).toEqual({ push: true });
+    expect(parseArgs(["node", "cli.js", "resolve", "--push"])).toEqual({
+      command: "resolve",
+      push: true,
+    });
   });
 
   it("throws on unknown arguments or missing agent value", () => {
-    expect(() => parseArgs(["node", "cli.js", "--unknown"])).toThrow(/Unknown argument/);
-    expect(() => parseArgs(["node", "cli.js", "--agent"])).toThrow(/Missing value/);
+    expect(() => parseArgs(["node", "cli.js", "resolve", "--unknown"])).toThrow(/Unknown argument/);
+    expect(() => parseArgs(["node", "cli.js", "resolve", "--agent"])).toThrow(/Missing value/);
   });
 });
 
@@ -75,7 +82,7 @@ describe("DefaultCLI", () => {
       git,
     });
 
-    await cli.run({});
+    await cli.run({ command: "resolve" });
 
     expect(runOnce).toHaveBeenCalled();
     expect(runAll).not.toHaveBeenCalled();
@@ -96,7 +103,7 @@ describe("DefaultCLI", () => {
       git,
     });
 
-    await cli.run({ all: true });
+    await cli.run({ command: "resolve", all: true });
 
     expect(runAll).toHaveBeenCalled();
     expect(runOnce).not.toHaveBeenCalled();
@@ -107,7 +114,7 @@ describe("DefaultCLI", () => {
       orchestrator: { runOnce: jest.fn(), runAll: jest.fn() },
     });
 
-    await expect(cli.run({ agent: "other" })).rejects.toThrow(/Unsupported agent/);
+    await expect(cli.run({ command: "resolve", agent: "other" })).rejects.toThrow(/Unsupported/);
   });
 
   it("prints usage and exits when help is requested", async () => {
@@ -133,7 +140,7 @@ describe("DefaultCLI", () => {
     const cli = new DefaultCLI({ configLoader, taskTracker, orchestratorFactory, git });
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
 
-    await cli.run({});
+    await cli.run({ command: "resolve" });
 
     expect(spy).toHaveBeenCalledWith("No open tasks found. Nothing to run.");
     expect(orchestratorFactory.create).not.toHaveBeenCalled();
@@ -159,7 +166,7 @@ describe("DefaultCLI", () => {
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     try {
-      await cli.run({});
+      await cli.run({ command: "resolve" });
 
       expect(runOnce).not.toHaveBeenCalled();
       expect(spy).toHaveBeenCalledWith(
@@ -192,12 +199,35 @@ describe("DefaultCLI", () => {
     const cli = new DefaultCLI({ orchestratorFactory, configLoader, taskTracker });
 
     try {
-      await cli.run({ push: true });
+      await cli.run({ command: "resolve", push: true });
     } finally {
       branchSpy.mockRestore();
     }
 
     expect(runOnce).toHaveBeenCalled();
     expect((gitInstance as any).pushEnabled).toBe(true);
+  });
+
+  it("does not print usage on runtime errors", async () => {
+    const argv = process.argv;
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const runSpy = jest
+      .spyOn(DefaultCLI.prototype as any, "run")
+      .mockImplementationOnce(() => {
+        throw new Error("runtime failure");
+      });
+    process.argv = ["node", "cli.js", "resolve"];
+    const originalExitCode = process.exitCode;
+
+    try {
+      await main();
+      expect(consoleSpy).toHaveBeenCalledWith("runtime failure");
+      expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining("Usage:"));
+    } finally {
+      process.argv = argv;
+      consoleSpy.mockRestore();
+      runSpy.mockRestore();
+      process.exitCode = originalExitCode;
+    }
   });
 });

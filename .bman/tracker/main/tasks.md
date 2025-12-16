@@ -210,8 +210,9 @@ Also avoid doing this (also saw it in commitMessageFormatter.ts):
 ```
 function (): "completed" | "blocked"
 ```
-- [ ] TASK-33: CLI changes and issues
-* First of all, the CLI should not just start work, it should have commands. Currently the 
+
+- [x] TASK-33: CLI changes and issues
+* First of all, the CLI should not just start work, it should have commands. Currently the
 only command is "resolve" so it should be:
 ```
 bman-dev-agent resolve [--push] [--all]

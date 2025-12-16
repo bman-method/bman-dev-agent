@@ -13,6 +13,7 @@ import { DefaultTaskTracker } from "./taskTracker";
 import {
   CLI,
   CLIOptions,
+  CLICommand,
   Config,
   ConfigLoader,
   GitOps,
@@ -38,6 +39,8 @@ type TaskContext = {
   document: TaskTrackerDocument;
 };
 
+export class UsageError extends Error {}
+
 export class DefaultCLI implements CLI {
   constructor(private readonly overrides: CLIOverrides = {}) {}
 
@@ -47,9 +50,17 @@ export class DefaultCLI implements CLI {
       return;
     }
 
+    if (!options.command) {
+      throw new UsageError("No command provided.");
+    }
+
+    if (options.command !== "resolve") {
+      throw new UsageError(`Unknown command "${options.command}".`);
+    }
+
     const agentName = (options.agent ?? "codex").toLowerCase();
     if (agentName !== "codex") {
-      throw new Error(`Unsupported agent "${options.agent}". Only "codex" is supported.`);
+      throw new UsageError(`Unsupported agent "${options.agent}". Only "codex" is supported.`);
     }
 
     const git = this.overrides.git ?? new DefaultGitOps(process.cwd(), options.push === true);
@@ -145,12 +156,21 @@ export class DefaultCLI implements CLI {
 
 export function parseArgs(argv: string[]): CLIOptions {
   const options: CLIOptions = {};
+  let command: CLICommand | undefined;
 
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
 
     if (arg === "--help" || arg === "-h") {
       options.help = true;
+      continue;
+    }
+
+    if (!arg.startsWith("-")) {
+      if (command) {
+        throw new UsageError(`Unexpected argument: ${arg}`);
+      }
+      command = parseCommand(arg);
       continue;
     }
 
@@ -179,10 +199,22 @@ export function parseArgs(argv: string[]): CLIOptions {
       continue;
     }
 
-    throw new Error(`Unknown argument: ${arg}`);
+    throw new UsageError(`Unknown argument: ${arg}`);
   }
 
+  if (!options.help && !command) {
+    throw new UsageError("No command provided.");
+  }
+
+  options.command = command;
   return options;
+}
+
+function parseCommand(value: string): CLICommand {
+  if (value === "resolve") {
+    return "resolve";
+  }
+  throw new UsageError(`Unknown command "${value}".`);
 }
 
 export async function main(): Promise<void> {
@@ -194,7 +226,9 @@ export async function main(): Promise<void> {
     // Print a concise error; callers rely on non-zero exit to detect failure.
     const message = err instanceof Error ? err.message : String(err);
     console.error(message);
-    printUsage();
+    if (err instanceof UsageError) {
+      printUsage();
+    }
     process.exitCode = 1;
   }
 }
@@ -205,7 +239,10 @@ if (require.main === module) {
 
 function printUsage(): void {
   const usage = `
-Usage: bman-dev-agent [options]
+Usage: bman-dev-agent resolve [options]
+
+Commands:
+  resolve         Resolve tasks using the Codex agent
 
 Options:
   --all, -a       Run all tasks sequentially
