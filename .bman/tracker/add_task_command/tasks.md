@@ -1,4 +1,4 @@
-- [ ] TASK-1: Add "add-task" command to the cli
+- [x] TASK-1: Add "add-task" command to the cli
 Usage:
 bmad-dev-agent add-task "Description"
 This should automatically create the relevant tracker if not exit (named after the current branch as usual)

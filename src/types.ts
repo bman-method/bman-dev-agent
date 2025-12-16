@@ -130,7 +130,7 @@ export interface OrchestratorFactory {
   create(deps: OrchestratorDeps): Orchestrator;
 }
 
-export type CLICommand = "resolve";
+export type CLICommand = "resolve" | "add-task";
 
 export interface CLIOptions {
   all?: boolean;
@@ -138,6 +138,7 @@ export interface CLIOptions {
   command?: CLICommand;
   help?: boolean;
   push?: boolean;
+  taskDescription?: string;
 }
 
 export interface CLI {
