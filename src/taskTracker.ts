@@ -4,25 +4,31 @@ import { Task, TaskTracker, TaskTrackerDocument } from "./types";
 type TaskStatus = Task["status"];
 export class DefaultTaskTracker implements TaskTracker {
     constructor(private readonly tasksFile: string) { }
+
     loadDocument(): TaskTrackerDocument {
         const fullPath = this.resolvePath();
         const content = fs.readFileSync(fullPath, "utf8");
         return parseDocument(content);
     }
+
     pickNextTask(tasks: Task[]): Task | null {
         return tasks.find((task) => task.status === "open") ?? null;
     }
+
     markDone(tasks: Task[], taskId: string, _commitSha: string): Task[] {
         return this.updateStatus(tasks, taskId, "done");
     }
+
     markBlocked(tasks: Task[], taskId: string, _reason: string, _commitSha?: string): Task[] {
         return this.updateStatus(tasks, taskId, "blocked");
     }
+
     saveDocument(doc: TaskTrackerDocument): void {
         const fullPath = this.resolvePath();
         const content = serializeDocument(doc);
         fs.writeFileSync(fullPath, content, "utf8");
     }
+
     private updateStatus(tasks: Task[], taskId: string, status: TaskStatus): Task[] {
         let found = false;
         const updated = tasks.map((task) => {
@@ -37,6 +43,7 @@ export class DefaultTaskTracker implements TaskTracker {
         }
         return updated;
     }
+
     private resolvePath(): string {
         return path.resolve(this.tasksFile);
     }
@@ -53,6 +60,7 @@ const STATUS_TO_SYMBOL: Record<Task["status"], string> = {
     blocked: "!",
 };
 const TASK_LINE = /^\s*-\s*\[\s*([x!])?\s*\]\s+(\S+):\s*(.*)$/i;
+
 function parseDocument(content: string): TaskTrackerDocument {
     const lines = content.split(/\r?\n/);
     const preludeLines: string[] = [];
@@ -90,12 +98,14 @@ function parseDocument(content: string): TaskTrackerDocument {
         tasks,
     };
 }
+
 function matchTaskLine(line: string): RegExpMatchArray | null {
     if (!line.trim()) {
         return null;
     }
     return line.match(TASK_LINE);
 }
+
 function trimEmptyLines(lines: string[]): string[] {
     let start = 0;
     let end = lines.length;
@@ -107,15 +117,18 @@ function trimEmptyLines(lines: string[]): string[] {
     }
     return lines.slice(start, end);
 }
+
 function normalizeDescription(lines: string[]): string {
     const trimmed = trimEmptyLines(lines);
     return trimmed.map((line) => line.trim()).join("\n");
 }
+
 function ensureUniqueId(tasks: Task[], id: string): void {
     if (tasks.some((task) => task.id === id)) {
         throw new Error(`Duplicate task id detected: ${id}`);
     }
 }
+
 function serializeTasksToLines(tasks: Task[]): string[] {
     const lines: string[] = [];
     tasks.forEach((task, index) => {
@@ -136,12 +149,15 @@ function serializeTasksToLines(tasks: Task[]): string[] {
     }
     return lines;
 }
+
 function parseTasks(content: string): Task[] {
     return parseDocument(content).tasks;
 }
+
 function serializeTasks(tasks: Task[]): string {
     return serializeTasksToLines(tasks).join("\n");
 }
+
 function serializeDocument(doc: TaskTrackerDocument): string {
     const lines: string[] = [];
     if (doc.preludeText) {

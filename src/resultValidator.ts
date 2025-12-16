@@ -35,11 +35,13 @@ export class DefaultResultValidator implements ResultValidator {
         };
     }
 }
+
 function ensureFields(obj: Record<string, unknown>, fields: OutputContractField[]): void {
     for (const field of fields) {
         getFieldValue(obj, field.name);
     }
 }
+
 function getFieldValue(obj: Record<string, unknown>, path: string): unknown {
     const parts = path.split(".");
     let current: unknown = obj;
@@ -58,18 +60,21 @@ function getFieldValue(obj: Record<string, unknown>, path: string): unknown {
     }
     return current;
 }
+
 function expectString(value: unknown, field: string): string {
     if (typeof value !== "string") {
         throw new Error(`Field "${field}" must be a string.`);
     }
     return value;
 }
+
 function expectStatus(value: unknown): AgentOutput["status"] {
     if (value !== "success" && value !== "blocked" && value !== "failed") {
         throw new Error(`Field "status" must be one of "success", "blocked", or "failed".`);
     }
     return value;
 }
+
 function enforceMaxLines(content: string, contract: OutputContract, fieldName: string): void {
     const field = contract.fields.find((f) => f.name === fieldName);
     if (!field?.maxLines) {

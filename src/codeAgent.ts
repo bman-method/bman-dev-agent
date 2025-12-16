@@ -9,7 +9,9 @@ interface CodexAgentOptions {
 }
 export class CodexAgent implements CodeAgent {
     name = "codex";
+
     constructor(private readonly options: CodexAgentOptions = {}) { }
+
     async run(prompt: string, ctx: RunContext): Promise<void> {
         ensureDirectoryFor(ctx.outputPath);
         const logPath = buildLogPath(ctx);
@@ -63,15 +65,18 @@ export class CodexAgent implements CodeAgent {
         });
     }
 }
+
 function ensureDirectoryFor(filePath: string): void {
     const dir = path.dirname(filePath);
     fs.mkdirSync(dir, { recursive: true });
 }
+
 function buildLogPath(ctx: RunContext): string {
     const outputRoot = path.dirname(path.dirname(ctx.outputPath));
     const timestamp = extractTimestampFromRunId(ctx.runId);
     return path.join(outputRoot, "logs", `codex-${ctx.taskId}-${timestamp}.log`);
 }
+
 function extractTimestampFromRunId(runId: string): string {
     const match = /^run-([^-]+)/.exec(runId);
     if (match?.[1]) {

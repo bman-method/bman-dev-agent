@@ -4,6 +4,7 @@ export class OrchestratorError extends Error {
 }
 export class DefaultOrchestrator implements Orchestrator {
     constructor(private readonly deps: OrchestratorDeps) { }
+
     async runOnce(): Promise<void> {
         const { configLoader, branchName, taskTracker, promptStrategy, runContextFactory, contract, agent, resultReader, resultValidator, commitFormatter, git, } = this.deps;
         const config = configLoader.load(branchName);
@@ -64,6 +65,7 @@ export class DefaultOrchestrator implements Orchestrator {
             throw err;
         }
     }
+
     async runAll(): Promise<void> {
         while (true) {
             const { taskTracker } = this.deps;
@@ -76,6 +78,7 @@ export class DefaultOrchestrator implements Orchestrator {
             await this.runOnce();
         }
     }
+
     private updateTasks(taskTracker: OrchestratorDeps["taskTracker"], trackerDocument: TaskTrackerDocument, task: Task, output: AgentOutput, commitSha?: string): Task[] {
         if (output.status === "success") {
             return taskTracker.markDone(trackerDocument.tasks, task.id, commitSha ?? "");

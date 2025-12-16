@@ -2,10 +2,12 @@ import { OutputContract, PromptInput, PromptStrategy, Task } from "./types";
 const section = (title: string, body: string): string => {
     return `${title}:\n${body.trim()}`;
 };
+
 function formatTask(task: Task): string {
     const desc = task.description ? `\n${task.description}` : "";
     return `${task.id} - ${task.title}${desc}`;
 }
+
 function formatContract(contract: OutputContract): string {
     return contract.fields
         .map((field) => {
@@ -14,6 +16,7 @@ function formatContract(contract: OutputContract): string {
     })
         .join("\n");
 }
+
 function formatCompletedTasks(tasks: Task[], currentId: string): string {
     const completed = tasks.filter((t) => t.id !== currentId && t.status === "done");
     if (completed.length === 0) {
