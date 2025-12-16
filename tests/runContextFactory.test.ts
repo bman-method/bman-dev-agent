@@ -36,6 +36,8 @@ describe("DefaultRunContextFactory", () => {
       });
 
       expect(ctx1.runId).not.toBe(ctx2.runId);
+      expect(ctx1.timestamp).toMatch(/^\d{17}$/);
+      expect(ctx1.runId).toContain(ctx1.timestamp);
       expect(ctx1.taskId).toBe(task.id);
       expect(ctx1.attempt).toBe(1);
       expect(ctx1.outputPath).toMatch(new RegExp(`${task.id}/.+\\.json$`));

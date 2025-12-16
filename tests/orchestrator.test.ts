@@ -41,6 +41,7 @@ function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
     runContextFactory: {
       create: jest.fn(() => ({
         runId: "run-1",
+        timestamp: "20240101000000000",
         taskId: "TASK-11",
         attempt: 1,
         outputPath: "/tmp/out.json",

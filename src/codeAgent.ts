@@ -72,15 +72,6 @@ function ensureDirectoryFor(filePath: string): void {
 }
 
 function buildLogPath(ctx: RunContext): string {
-    const outputRoot = path.dirname(path.dirname(ctx.outputPath));
-    const timestamp = extractTimestampFromRunId(ctx.runId);
-    return path.join(outputRoot, "logs", `codex-${ctx.taskId}-${timestamp}.log`);
-}
-
-function extractTimestampFromRunId(runId: string): string {
-    const match = /^run-([^-]+)/.exec(runId);
-    if (match?.[1]) {
-        return match[1];
-    }
-    return new Date().toISOString().replace(/[-:TZ.]/g, "");
+  const outputRoot = path.dirname(path.dirname(ctx.outputPath));
+  return path.join(outputRoot, "logs", `codex-${ctx.taskId}-${ctx.timestamp}.log`);
 }

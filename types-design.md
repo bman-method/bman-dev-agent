@@ -48,6 +48,7 @@ interface TaskTracker {
 
 interface RunContext {
   runId: string;
+  timestamp: string;
   taskId: string;
   attempt: number;
   outputPath: string;

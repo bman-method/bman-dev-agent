@@ -32,6 +32,7 @@ function buildInput(overrides: Partial<PromptInput> = {}): PromptInput {
     runContext: {
       taskId: task.id,
       runId: "run-123",
+      timestamp: "20240101000000000",
       attempt: 1,
       outputPath: ".out/TASK-5/run-123.json",
     },

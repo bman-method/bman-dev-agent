@@ -13,9 +13,14 @@ function withTempDir<T>(fn: (dir: string) => T): T {
   }
 }
 
-function buildCtx(outputPath: string, runId = "run-20240101000000000-abc123"): RunContext {
+function buildCtx(
+  outputPath: string,
+  runId = "run-20240101000000000-abc123",
+  timestamp = "20240101000000000"
+): RunContext {
   return {
     runId,
+    timestamp,
     taskId: "TASK-1",
     attempt: 1,
     outputPath,
@@ -24,15 +29,14 @@ function buildCtx(outputPath: string, runId = "run-20240101000000000-abc123"): R
 
 function buildLogPath(ctx: RunContext): string {
   const outputRoot = path.dirname(path.dirname(ctx.outputPath));
-  const timestamp = ctx.runId.match(/^run-([^-]+)/)?.[1] ?? "unknown";
-  return path.join(outputRoot, "logs", `codex-${ctx.taskId}-${timestamp}.log`);
+  return path.join(outputRoot, "logs", `codex-${ctx.taskId}-${ctx.timestamp}.log`);
 }
 
 describe("CodexAgent", () => {
   it("uses default codex exec flags when args are not provided and writes logs to a file", async () => {
     await withTempDir(async (dir) => {
       const outputPath = path.join(dir, "TASK-1", "result.json");
-      const ctx = buildCtx(outputPath, "run-20240101120000000-abc123");
+      const ctx = buildCtx(outputPath, "run-20240101120000000-abc123", "20240101120000000");
       const prompt = "Default flags prompt";
 
       const expectedArgs = [
@@ -140,7 +144,7 @@ describe("CodexAgent", () => {
         args: ["-e", script],
       });
 
-      const ctx = buildCtx(outputPath, "run-20240202101010101-zzz111");
+      const ctx = buildCtx(outputPath, "run-20240202101010101-zzz111", "20240202101010101");
       await agent.run(prompt, ctx);
 
       const saved = JSON.parse(fs.readFileSync(outputPath, "utf8")) as { received: string };

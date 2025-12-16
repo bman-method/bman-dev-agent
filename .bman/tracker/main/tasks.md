@@ -197,7 +197,7 @@ The readme is lacking the description of the workflow with the tool which is:
 - [x] TASK-30: Remove the home made linter and use an industry standard linter with the same rules discussed in task 25.
 Please add an additional rule: keep 1 line space between functions.
 
-- [ ] TASK-31: Remove the timestamp extraction from runId. Instead, add timestamp as a separate field in the runContext and use it.
+- [x] TASK-31: Remove the timestamp extraction from runId. Instead, add timestamp as a separate field in the runContext and use it.
 
 - [ ] TASK-32: Scan the code and refactor places that you use inline types.
 For example: in commitMessageFormatter.ts you did:

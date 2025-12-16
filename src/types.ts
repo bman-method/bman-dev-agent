@@ -31,6 +31,7 @@ export interface TaskTracker {
 
 export interface RunContext {
   runId: string;
+  timestamp: string;
   taskId: string;
   attempt: number;
   outputPath: string;
