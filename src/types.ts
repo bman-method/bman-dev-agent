@@ -1,3 +1,5 @@
+import type { AgentOutput, AgentOutputStatus } from "./agentOutputSchema";
+
 export interface Config {
   agent: string;
   tasksFile: string;
@@ -70,20 +72,7 @@ export interface CodeAgent {
   run(prompt: string, ctx: RunContext): Promise<void>;
 }
 
-export type RawAgentResult = unknown;
-
-export type AgentOutputStatus = "success" | "blocked" | "failed";
-
-export interface AgentOutput {
-  taskId: string;
-  status: AgentOutputStatus;
-  commitMessage: string;
-  changesMade: string;
-  assumptions: string;
-  decisionsTaken: string;
-  pointsOfUnclarity: string;
-  testsRun: string;
-}
+export type RawAgentResult = string;
 
 export interface ResultReader {
   read(path: string): RawAgentResult;
@@ -143,3 +132,5 @@ export interface CLIOptions {
 export interface CLI {
   run(options: CLIOptions): Promise<void>;
 }
+
+export type { AgentOutput, AgentOutputStatus };

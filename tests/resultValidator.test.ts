@@ -19,27 +19,23 @@ describe("DefaultResultValidator", () => {
       ...thoughts,
     };
 
-    expect(validator.validate(raw, DefaultOutputContract)).toEqual(raw);
+    expect(validator.validate(JSON.stringify(raw), DefaultOutputContract)).toEqual(raw);
   });
 
   it("rejects non-object payloads", () => {
-    expect(() => validator.validate(null as unknown as object, DefaultOutputContract)).toThrow(
-      /must be a JSON object/
-    );
-    expect(() => validator.validate([] as unknown as object, DefaultOutputContract)).toThrow(
-      /must be a JSON object/
-    );
+    expect(() => validator.validate("null", DefaultOutputContract)).toThrow(/must be a JSON object/);
+    expect(() => validator.validate("[]", DefaultOutputContract)).toThrow(/must be a JSON object/);
   });
 
   it("rejects missing required fields", () => {
     expect(() =>
-      validator.validate({ taskId: "T1", status: "success" }, DefaultOutputContract)
+      validator.validate(JSON.stringify({ taskId: "T1", status: "success" }), DefaultOutputContract)
     ).toThrow(/Missing required field: commitMessage/);
 
     const { testsRun, ...incompleteThoughts } = thoughts;
     expect(() =>
       validator.validate(
-        { taskId: "T1", status: "success", commitMessage: "x", ...incompleteThoughts },
+        JSON.stringify({ taskId: "T1", status: "success", commitMessage: "x", ...incompleteThoughts }),
         DefaultOutputContract
       )
     ).toThrow(/Missing required field: testsRun/);
@@ -48,7 +44,7 @@ describe("DefaultResultValidator", () => {
   it("rejects invalid status values", () => {
     expect(() =>
       validator.validate(
-        { taskId: "T1", status: "nope", commitMessage: "x", ...thoughts },
+        JSON.stringify({ taskId: "T1", status: "nope", commitMessage: "x", ...thoughts }),
         DefaultOutputContract
       )
     ).toThrow(/must be one of "success", "blocked", or "failed"/);
@@ -57,20 +53,20 @@ describe("DefaultResultValidator", () => {
   it("rejects non-string fields", () => {
     expect(() =>
       validator.validate(
-        { taskId: 1, status: "success", commitMessage: "x", ...thoughts },
+        JSON.stringify({ taskId: 1, status: "success", commitMessage: "x", ...thoughts }),
         DefaultOutputContract
       )
     ).toThrow(/must be a string/);
 
     expect(() =>
       validator.validate(
-        {
+        JSON.stringify({
           taskId: "T1",
           status: "success",
           commitMessage: "x",
           ...thoughts,
           assumptions: 123 as unknown as string,
-        },
+        }),
         DefaultOutputContract
       )
     ).toThrow(/Field "assumptions" must be a string/);
@@ -85,6 +81,6 @@ describe("DefaultResultValidator", () => {
       testsRun:
         "line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10\nline11\nline12\nline13\nline14\nline15\nline16\nline17\nline18\nline19\nline20\nline21",
     };
-    expect(() => validator.validate(tooLong, DefaultOutputContract)).toThrow(/exceeds maxLines/);
+    expect(() => validator.validate(JSON.stringify(tooLong), DefaultOutputContract)).toThrow(/exceeds maxLines/);
   });
 });

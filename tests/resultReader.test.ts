@@ -13,25 +13,26 @@ function withTempDir<T>(fn: (dir: string) => T): T {
 }
 
 describe("DefaultResultReader", () => {
-  it("reads and parses JSON from the given path", () => {
+  it("reads raw JSON from the given path", () => {
     withTempDir((dir) => {
       const file = path.join(dir, "out.json");
-      fs.writeFileSync(file, JSON.stringify({ taskId: "T1", status: "success" }));
+      const content = JSON.stringify({ taskId: "T1", status: "success" });
+      fs.writeFileSync(file, content);
 
       const reader = new DefaultResultReader();
-      const raw = reader.read(file) as { taskId: string; status: string };
+      const raw = reader.read(file);
 
-      expect(raw).toEqual({ taskId: "T1", status: "success" });
+      expect(raw).toEqual(content);
     });
   });
 
-  it("throws on invalid JSON", () => {
+  it("returns invalid JSON as-is", () => {
     withTempDir((dir) => {
       const file = path.join(dir, "bad.json");
       fs.writeFileSync(file, "{not valid");
 
       const reader = new DefaultResultReader();
-      expect(() => reader.read(file)).toThrow();
+      expect(reader.read(file)).toBe("{not valid");
     });
   });
 

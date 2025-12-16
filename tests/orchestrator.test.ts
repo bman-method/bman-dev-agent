@@ -51,7 +51,7 @@ function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
       run: jest.fn().mockResolvedValue(undefined),
     },
     resultReader: {
-      read: jest.fn(() => ({})),
+      read: jest.fn(() => "{}"),
     },
     resultValidator: {
       validate: jest.fn(

@@ -45,15 +45,15 @@ export type AgentOutput = InferFromSpec<typeof agentOutputSchema>;
 Make sure to run all tests and linter before closing each task.
 Non passing tests that you can't fix = blocked task.
 
-- [ ] TASK-1: Add generic parsing + validation utility class that can get a schema such as agentOutputSchema and a string (json), then it can validate the object and return an inferred type.
+- [x] TASK-1: Add generic parsing + validation utility class that can get a schema such as agentOutputSchema and a string (json), then it can validate the object and return an inferred type.
 Example usage may be:
 ```
 const validator = new SchemaValidator<AgentOutput>(agentOutputSchema);
 
 try {
-    const agentOutput = validator.parse(string);
+const agentOutput = validator.parse(string);
 } catch () {
-    // handle validation errors
+// handle validation errors
 }
 ```
 
