@@ -210,3 +210,11 @@ Also avoid doing this (also saw it in commitMessageFormatter.ts):
 ```
 function (): "completed" | "blocked"
 ```
+- [ ] TASK-33: CLI changes and issues
+* First of all, the CLI should not just start work, it should have commands. Currently the 
+only command is "resolve" so it should be:
+```
+bman-dev-agent resolve [--push] [--all]
+```
+In case that the CLI is ran with no arguments: show usage.
+* I've noticed that usage is shown on any failure. Please show usage only on failure due to bad arguments (or no arguments at all). Do not show usage if the tool started to run and suddenly failed from a different reason.
