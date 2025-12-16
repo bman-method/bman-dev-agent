@@ -6,8 +6,7 @@ bmad-dev-agent add-task "Description"
 This should automatically create the relevant tracker if not exit (named after the current branch as usual)
 then add the new task to the bottom of the tasks list and give it a number (+1 of the last task number)
 
-- [ ] TASK-2: Cover add-task CLI command with tests
+- [x] TASK-2: Cover add-task CLI command with tests
 
 - [ ] TASK-3: Change usage such that the options will be related to the specific command
 * --all and --push are relevant only for "resolve" for example
-

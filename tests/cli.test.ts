@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { DefaultCLI, UsageError, main, parseArgs } from "../src/cli";
 import { DefaultGitOps } from "../src/gitOps";
 import { Task } from "../src/types";
@@ -57,6 +60,13 @@ describe("parseArgs", () => {
     expect(parseArgs(["node", "cli.js", "resolve", "--push"])).toEqual({
       command: "resolve",
       push: true,
+    });
+  });
+
+  it("parses add-task command with a description", () => {
+    expect(parseArgs(["node", "cli.js", "add-task", "Write docs"])).toEqual({
+      command: "add-task",
+      taskDescription: "Write docs",
     });
   });
 
@@ -206,6 +216,82 @@ describe("DefaultCLI", () => {
 
     expect(runOnce).toHaveBeenCalled();
     expect((gitInstance as any).pushEnabled).toBe(true);
+  });
+
+  it("appends the next task id and saves the updated document", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-add-task-"));
+    const tasksFile = path.join(dir, "tasks.md");
+    fs.writeFileSync(tasksFile, "existing content");
+
+    const existingTasks: Task[] = [
+      { id: "TASK-1", title: "First", description: "", status: "open" },
+      { id: "OTHER", title: "Other", description: "", status: "done" },
+      { id: "TASK-3", title: "Third", description: "", status: "open" },
+    ];
+    const configLoader = makeConfigLoader();
+    configLoader.load.mockReturnValue({ ...baseConfig, tasksFile });
+    const taskTracker = {
+      loadDocument: jest.fn(() => ({ preludeText: "Prelude", tasks: existingTasks })),
+      pickNextTask: jest.fn(),
+      markDone: jest.fn(),
+      markBlocked: jest.fn(),
+      saveDocument: jest.fn(),
+    };
+    const git = makeGit();
+    const cli = new DefaultCLI({ configLoader, taskTracker, git });
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await cli.run({ command: "add-task", taskDescription: "New task" });
+
+      expect(taskTracker.saveDocument).toHaveBeenCalledWith({
+        preludeText: "Prelude",
+        tasks: [
+          ...existingTasks,
+          { id: "TASK-4", title: "New task", description: "", status: "open" },
+        ],
+      });
+      expect(taskTracker.loadDocument).toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(`Added task TASK-4 to ${path.resolve(tasksFile)}`)
+      );
+    } finally {
+      logSpy.mockRestore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("initializes a new document when the tasks file is missing", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-add-task-"));
+    const tasksFile = path.join(dir, "tasks.md");
+    const configLoader = makeConfigLoader();
+    configLoader.load.mockReturnValue({ ...baseConfig, tasksFile });
+    const taskTracker = {
+      loadDocument: jest.fn(),
+      pickNextTask: jest.fn(),
+      markDone: jest.fn(),
+      markBlocked: jest.fn(),
+      saveDocument: jest.fn(),
+    };
+    const git = makeGit();
+    const cli = new DefaultCLI({ configLoader, taskTracker, git });
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await cli.run({ command: "add-task", taskDescription: "First task" });
+
+      expect(taskTracker.loadDocument).not.toHaveBeenCalled();
+      expect(taskTracker.saveDocument).toHaveBeenCalledWith({
+        preludeText: "",
+        tasks: [{ id: "TASK-1", title: "First task", description: "", status: "open" }],
+      });
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(`Added task TASK-1 to ${path.resolve(tasksFile)}`)
+      );
+    } finally {
+      logSpy.mockRestore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("does not print usage on runtime errors", async () => {
