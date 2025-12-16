@@ -193,3 +193,22 @@ The readme is lacking the description of the workflow with the tool which is:
 
 * It's need to be explained that sometimes reset is the better choice because we can get cleaner solution and it also makes us better in defining tasks.
 * Also emphasise how important is the human review of all the tasks and how the tool makes it wasy to do it quickly.
+
+
+- [ ] TASK-30: Remove the home made linter and use an industry standard linter with the same rules discussed in task 25.
+Please add an additional rule: keep 1 line space between functions.
+
+- [ ] TASK-31: Remove the timestamp extraction from runId. Instead, add timestamp as a separate field in the runContext and use it.
+
+- [ ] TASK-32: Scan the code and refactor places that you use inline types.
+For example: in commitMessageFormatter.ts you did:
+```
+status: AgentOutput["status"]
+```
+Instead, create a type AgentOutputStatus in the typs.ts.
+There are several more examples in the code, I'd like that all the types will be defined with names.
+Also avoid doing this (also saw it in commitMessageFormatter.ts): 
+```
+function (): "completed" | "blocked" 
+```
+
