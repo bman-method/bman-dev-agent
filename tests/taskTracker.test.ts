@@ -101,8 +101,8 @@ describe("DefaultTaskTracker", () => {
       const tracker = new DefaultTaskTracker(filePath);
       const doc = tracker.loadDocument();
 
-      const markedDone = tracker.markDone(doc.tasks, "TASK-1", "sha123");
-      const markedBlocked = tracker.markBlocked(markedDone, "TASK-3", "Waiting", "sha456");
+      const markedDone = tracker.markDone(doc.tasks, "TASK-1");
+      const markedBlocked = tracker.markBlocked(markedDone, "TASK-3");
       tracker.saveDocument({ ...doc, tasks: markedBlocked });
 
       const saved = fs.readFileSync(filePath, "utf8");
@@ -139,6 +139,6 @@ describe("DefaultTaskTracker", () => {
     const tasks: Task[] = [
       { id: "T1", title: "Title", description: "Desc", status: "open" },
     ];
-    expect(() => tracker.markDone(tasks, "missing", "sha")).toThrow(/not found/);
+    expect(() => tracker.markDone(tasks, "missing")).toThrow(/not found/);
   });
 });

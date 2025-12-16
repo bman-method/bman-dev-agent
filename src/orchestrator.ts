@@ -1,5 +1,4 @@
 import { AgentOutput, Orchestrator, OrchestratorDeps, OrchestratorFactory, PromptInput, Task, TaskTrackerDocument, } from "./types";
-import { deriveHumanMessage } from "./commitMessageFormatter";
 export class OrchestratorError extends Error {
 }
 export class DefaultOrchestrator implements Orchestrator {
@@ -37,7 +36,7 @@ export class DefaultOrchestrator implements Orchestrator {
             if (output.taskId !== task.id) {
                 throw new OrchestratorError(`AgentOutput.taskId (${output.taskId}) does not match current task (${task.id}).`);
             }
-            const updatedTasks = this.updateTasks(taskTracker, trackerDocument, task, output, commitSha);
+            const updatedTasks = this.updateTasks(taskTracker, trackerDocument, task, output);
             taskTracker.saveDocument({ ...trackerDocument, tasks: updatedTasks });
             tasksUpdated = true;
             const title = commitFormatter.formatTitle(task, output);
@@ -55,7 +54,7 @@ export class DefaultOrchestrator implements Orchestrator {
             console.error(`Orchestrator: task ${task.id} failed - ${reason}`);
             if (!tasksUpdated || !commitSha) {
                 try {
-                    const updatedTasks = taskTracker.markBlocked(trackerDocument.tasks, task.id, reason, commitSha);
+                    const updatedTasks = taskTracker.markBlocked(trackerDocument.tasks, task.id);
                     taskTracker.saveDocument({ ...trackerDocument, tasks: updatedTasks });
                 }
                 catch {
@@ -67,24 +66,22 @@ export class DefaultOrchestrator implements Orchestrator {
     }
 
     async runAll(): Promise<void> {
-        while (true) {
-            const { taskTracker } = this.deps;
-            const doc = taskTracker.loadDocument();
-            const next = taskTracker.pickNextTask(doc.tasks);
-            if (!next) {
-                return;
-            }
+        const { taskTracker } = this.deps;
+        let doc = taskTracker.loadDocument();
+        let next = taskTracker.pickNextTask(doc.tasks);
+        while (next) {
             console.log(`Orchestrator: starting task ${next.id} from runAll`);
             await this.runOnce();
+            doc = taskTracker.loadDocument();
+            next = taskTracker.pickNextTask(doc.tasks);
         }
     }
 
-    private updateTasks(taskTracker: OrchestratorDeps["taskTracker"], trackerDocument: TaskTrackerDocument, task: Task, output: AgentOutput, commitSha?: string): Task[] {
+    private updateTasks(taskTracker: OrchestratorDeps["taskTracker"], trackerDocument: TaskTrackerDocument, task: Task, output: AgentOutput): Task[] {
         if (output.status === "success") {
-            return taskTracker.markDone(trackerDocument.tasks, task.id, commitSha ?? "");
+            return taskTracker.markDone(trackerDocument.tasks, task.id);
         }
-        const reason = deriveHumanMessage(task, output);
-        return taskTracker.markBlocked(trackerDocument.tasks, task.id, reason, commitSha);
+        return taskTracker.markBlocked(trackerDocument.tasks, task.id);
     }
 }
 export class DefaultOrchestratorFactory implements OrchestratorFactory {

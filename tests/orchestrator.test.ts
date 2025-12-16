@@ -28,10 +28,8 @@ function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
       markDone: jest.fn((tasks: Task[], taskId: string) =>
         tasks.map((t) => (t.id === taskId ? { ...t, status: "done" } : t))
       ),
-      markBlocked: jest.fn((tasks: Task[], taskId: string, reason: string) =>
-        tasks.map((t) =>
-          t.id === taskId ? { ...t, status: "blocked", description: reason } : t
-        )
+      markBlocked: jest.fn((tasks: Task[], taskId: string) =>
+        tasks.map((t) => (t.id === taskId ? { ...t, status: "blocked" } : t))
       ),
       saveDocument: jest.fn(),
     },
@@ -131,8 +129,7 @@ describe("DefaultOrchestrator", () => {
 
     expect(deps.taskTracker.markDone).toHaveBeenCalledWith(
       expect.any(Array),
-      "TASK-11",
-      expect.any(String)
+      "TASK-11"
     );
     expect(deps.taskTracker.saveDocument).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -171,9 +168,7 @@ describe("DefaultOrchestrator", () => {
     expect(deps.git.commit).toHaveBeenCalled();
     expect(deps.taskTracker.markBlocked).toHaveBeenCalledWith(
       expect.any(Array),
-      "TASK-11",
-      "Waiting on dependency",
-      undefined
+      "TASK-11"
     );
     expect(deps.taskTracker.saveDocument).toHaveBeenCalled();
   });
@@ -192,9 +187,7 @@ describe("DefaultOrchestrator", () => {
 
     expect(deps.taskTracker.markBlocked).toHaveBeenCalledWith(
       expect.any(Array),
-      "TASK-11",
-      "bad output",
-      undefined
+      "TASK-11"
     );
     expect(deps.taskTracker.saveDocument).toHaveBeenCalled();
     expect(deps.git.commit).not.toHaveBeenCalled();

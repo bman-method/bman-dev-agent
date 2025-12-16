@@ -26,8 +26,8 @@ export interface TaskTrackerDocument {
 export interface TaskTracker {
   loadDocument(): TaskTrackerDocument;
   pickNextTask(tasks: Task[]): Task | null;
-  markDone(tasks: Task[], taskId: string, commitSha: string): Task[];
-  markBlocked(tasks: Task[], taskId: string, reason: string, commitSha?: string): Task[];
+  markDone(tasks: Task[], taskId: string): Task[];
+  markBlocked(tasks: Task[], taskId: string): Task[];
   saveDocument(doc: TaskTrackerDocument): void;
 }
 

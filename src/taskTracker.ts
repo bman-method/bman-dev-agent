@@ -14,11 +14,11 @@ export class DefaultTaskTracker implements TaskTracker {
         return tasks.find((task) => task.status === "open") ?? null;
     }
 
-    markDone(tasks: Task[], taskId: string, _commitSha: string): Task[] {
+    markDone(tasks: Task[], taskId: string): Task[] {
         return this.updateStatus(tasks, taskId, "done");
     }
 
-    markBlocked(tasks: Task[], taskId: string, _reason: string, _commitSha?: string): Task[] {
+    markBlocked(tasks: Task[], taskId: string): Task[] {
         return this.updateStatus(tasks, taskId, "blocked");
     }
 
