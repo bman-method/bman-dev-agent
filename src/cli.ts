@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import path from "node:path";
 import { CodexAgent } from "./codeAgent";
 import { DefaultCommitMessageFormatter } from "./commitMessageFormatter";
 import { DefaultConfigLoader } from "./configLoader";
@@ -53,6 +54,17 @@ export class DefaultCLI implements CLI {
       throw new UsageError("No command provided.");
     }
 
+    const git = this.overrides.git ?? new DefaultGitOps(process.cwd(), options.push === true);
+    const branchName = this.getBranchNameOrExit(git);
+    if (!branchName) {
+      return;
+    }
+
+    if (options.command === "add-task") {
+      this.handleAddTask(branchName, options);
+      return;
+    }
+
     if (options.command !== "resolve") {
       throw new UsageError(`Unknown command "${options.command}".`);
     }
@@ -60,12 +72,6 @@ export class DefaultCLI implements CLI {
     const agentName = (options.agent ?? "codex").toLowerCase();
     if (agentName !== "codex") {
       throw new UsageError(`Unsupported agent "${options.agent}". Only "codex" is supported.`);
-    }
-
-    const git = this.overrides.git ?? new DefaultGitOps(process.cwd(), options.push === true);
-    const branchName = this.getBranchNameOrExit(git);
-    if (!branchName) {
-      return;
     }
 
     const { configLoader, taskTracker, document } = this.loadTaskContext(branchName);
@@ -140,6 +146,23 @@ export class DefaultCLI implements CLI {
     return factory.create(deps);
   }
 
+  private handleAddTask(branchName: string, options: CLIOptions): void {
+    const description = options.taskDescription?.trim();
+    if (!description) {
+      throw new UsageError("Task description is required for add-task.");
+    }
+
+    const configLoader = this.overrides.configLoader ?? new DefaultConfigLoader();
+    const config = configLoader.load(branchName);
+    configLoader.validate(config);
+
+    const taskTracker = this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
+    const task = taskTracker.addTask(description);
+
+    const resolvedPath = path.resolve(config.tasksFile);
+    console.log(`Added task ${task.id} to ${resolvedPath}`);
+  }
+
   private getBranchNameOrExit(git: GitOps): string | null {
     try {
       return git.getCurrentBranchName();
@@ -166,6 +189,10 @@ export function parseArgs(argv: string[]): CLIOptions {
 
     if (!arg.startsWith("-")) {
       if (command) {
+        if (command === "add-task" && options.taskDescription === undefined) {
+          options.taskDescription = arg;
+          continue;
+        }
         throw new UsageError(`Unexpected argument: ${arg}`);
       }
       command = parseCommand(arg);
@@ -200,6 +227,10 @@ export function parseArgs(argv: string[]): CLIOptions {
     throw new UsageError(`Unknown argument: ${arg}`);
   }
 
+  if (command) {
+    validateOptionsForCommand(command, options);
+  }
+
   if (!options.help && !command) {
     throw new UsageError("No command provided.");
   }
@@ -212,7 +243,24 @@ function parseCommand(value: string): CLICommand {
   if (value === "resolve") {
     return "resolve";
   }
+  if (value === "add-task") {
+    return "add-task";
+  }
   throw new UsageError(`Unknown command "${value}".`);
+}
+
+function validateOptionsForCommand(command: CLICommand, options: CLIOptions): void {
+  if (command !== "resolve") {
+    if (options.all) {
+      throw new UsageError("--all is only valid for the resolve command.");
+    }
+    if (options.push) {
+      throw new UsageError("--push is only valid for the resolve command.");
+    }
+    if (options.agent !== undefined) {
+      throw new UsageError("--agent is only valid for the resolve command.");
+    }
+  }
 }
 
 export async function main(): Promise<void> {
@@ -237,15 +285,20 @@ if (require.main === module) {
 
 function printUsage(): void {
   const usage = `
-Usage: bman-dev-agent resolve [options]
+Usage: bman-dev-agent <command> [options]
 
 Commands:
-  resolve         Resolve tasks using the Codex agent
+  resolve [options]
+                  Resolve tasks using the Codex agent
+    --all, -a     Run all tasks sequentially
+    --agent <name>
+                  Agent name (only "codex" supported; default: codex)
+    --push        Push commits after each task (opt-in)
 
-Options:
-  --all, -a       Run all tasks sequentially
-  --agent <name>  Agent name (only "codex" supported; default: codex)
-  --push          Push commits after each task (opt-in)
+  add-task <description>
+                  Append a new open task to the current branch tracker
+
+Global options:
   --help, -h      Show this help message
 `.trim();
   console.error(usage);

@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { DefaultCLI, UsageError, main, parseArgs } from "../src/cli";
 import { DefaultGitOps } from "../src/gitOps";
 import { Task } from "../src/types";
@@ -30,6 +33,7 @@ function makeTaskTracker(tasks: Task[]) {
     markDone: jest.fn(),
     markBlocked: jest.fn(),
     saveDocument: jest.fn(),
+    addTask: jest.fn(),
   };
 }
 
@@ -58,6 +62,25 @@ describe("parseArgs", () => {
       command: "resolve",
       push: true,
     });
+  });
+
+  it("parses add-task command with a description", () => {
+    expect(parseArgs(["node", "cli.js", "add-task", "Write docs"])).toEqual({
+      command: "add-task",
+      taskDescription: "Write docs",
+    });
+  });
+
+  it("rejects resolve-specific flags when using add-task", () => {
+    expect(() => parseArgs(["node", "cli.js", "add-task", "--all", "Write docs"])).toThrow(
+      /resolve/
+    );
+    expect(() => parseArgs(["node", "cli.js", "add-task", "--push", "Write docs"])).toThrow(
+      /resolve/
+    );
+    expect(() =>
+      parseArgs(["node", "cli.js", "add-task", "--agent", "codex", "Write docs"])
+    ).toThrow(/resolve/);
   });
 
   it("throws on unknown arguments or missing agent value", () => {
@@ -206,6 +229,81 @@ describe("DefaultCLI", () => {
 
     expect(runOnce).toHaveBeenCalled();
     expect((gitInstance as any).pushEnabled).toBe(true);
+  });
+
+  it("delegates task creation to the task tracker and logs the result", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-add-task-"));
+    const tasksFile = path.join(dir, "tasks.md");
+    fs.writeFileSync(tasksFile, "existing content");
+
+    const addedTask: Task = {
+      id: "TASK-4",
+      title: "New task",
+      description: "",
+      status: "open",
+    };
+    const configLoader = makeConfigLoader();
+    configLoader.load.mockReturnValue({ ...baseConfig, tasksFile });
+    const taskTracker = {
+      loadDocument: jest.fn(),
+      pickNextTask: jest.fn(),
+      markDone: jest.fn(),
+      markBlocked: jest.fn(),
+      saveDocument: jest.fn(),
+      addTask: jest.fn(() => addedTask),
+    };
+    const git = makeGit();
+    const cli = new DefaultCLI({ configLoader, taskTracker, git });
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await cli.run({ command: "add-task", taskDescription: "New task" });
+
+      expect(taskTracker.addTask).toHaveBeenCalledWith("New task");
+      expect(taskTracker.loadDocument).not.toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(`Added task TASK-4 to ${path.resolve(tasksFile)}`)
+      );
+    } finally {
+      logSpy.mockRestore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("still logs when the tasks file is missing", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-add-task-"));
+    const tasksFile = path.join(dir, "tasks.md");
+    const configLoader = makeConfigLoader();
+    configLoader.load.mockReturnValue({ ...baseConfig, tasksFile });
+    const addedTask: Task = {
+      id: "TASK-1",
+      title: "First task",
+      description: "",
+      status: "open",
+    };
+    const taskTracker = {
+      loadDocument: jest.fn(),
+      pickNextTask: jest.fn(),
+      markDone: jest.fn(),
+      markBlocked: jest.fn(),
+      saveDocument: jest.fn(),
+      addTask: jest.fn(() => addedTask),
+    };
+    const git = makeGit();
+    const cli = new DefaultCLI({ configLoader, taskTracker, git });
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await cli.run({ command: "add-task", taskDescription: "First task" });
+
+      expect(taskTracker.addTask).toHaveBeenCalledWith("First task");
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(`Added task TASK-1 to ${path.resolve(tasksFile)}`)
+      );
+    } finally {
+      logSpy.mockRestore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("does not print usage on runtime errors", async () => {

@@ -31,6 +31,7 @@ export interface TaskTracker {
   markDone(tasks: Task[], taskId: string): Task[];
   markBlocked(tasks: Task[], taskId: string): Task[];
   saveDocument(doc: TaskTrackerDocument): void;
+  addTask(title: string): Task;
 }
 
 export interface RunContext {
@@ -112,7 +113,7 @@ export interface OrchestratorFactory {
   create(deps: OrchestratorDeps): Orchestrator;
 }
 
-export type CLICommand = "resolve";
+export type CLICommand = "resolve" | "add-task";
 
 export interface CLIOptions {
   all?: boolean;
@@ -120,6 +121,7 @@ export interface CLIOptions {
   command?: CLICommand;
   help?: boolean;
   push?: boolean;
+  taskDescription?: string;
 }
 
 export interface CLI {

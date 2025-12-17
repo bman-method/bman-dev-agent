@@ -32,6 +32,7 @@ function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
         tasks.map((t) => (t.id === taskId ? { ...t, status: "blocked" } : t))
       ),
       saveDocument: jest.fn(),
+      addTask: jest.fn(),
     },
     promptStrategy: {
       build: jest.fn(() => "PROMPT"),
@@ -90,6 +91,7 @@ describe("DefaultOrchestrator", () => {
         markDone: jest.fn(),
         markBlocked: jest.fn(),
         saveDocument: jest.fn(),
+        addTask: jest.fn(),
       },
     });
 
