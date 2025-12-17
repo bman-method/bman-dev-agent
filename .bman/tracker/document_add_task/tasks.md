@@ -1,0 +1,1 @@
+- [x] TASK-1: Document the CLI command add-task in the readme.md under Workflow. Instead of creating the tasks.md file, the user can just call bman-dev-agent add-task <desc> and bmand will create the tracker if not exist and add the task
