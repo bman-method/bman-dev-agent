@@ -15,6 +15,51 @@ Developer-controlled CLI that runs a single coding task at a time using the B-MA
 - Configure (optional): `.bman/config.json` sets `tasksFile` and `outputDir` (defaults created automatically; tracker defaults to `.bman/tracker/<branch>/tasks.md` based on the current git branch).
 - Run the next task: `node dist/cli.js resolve` (or `./bin/bman-dev-agent resolve`) for one task, `node dist/cli.js resolve --all` to run sequentially until a block/failure. Add `--push` to push commits after each task (opt-in).
 
+## CI (GitHub Actions) example
+- Create a repository secret `CODEX_API_KEY` that holds your Codex API key (Settings → Secrets and variables → Actions → New repository secret).
+- Ensure the workflow has `contents: write` so `bman-dev-agent --push` can commit and push per-task changes; the agent will process all open tasks sequentially on that branch, committing and pushing each. If it encounters a blocked task, it will still commit/push it and then fail the workflow to surface the issue.
+- Decide how to trigger: on matching branches (e.g., `ai/*`) or manually via `workflow_dispatch` for safer control.
+- Suggested workflow (Node shown; add other toolchains as needed):
+  ```yaml
+  name: bman-dev-agent
+
+  on:
+    workflow_dispatch:
+    push:
+      branches:
+        - ai/**
+
+  permissions:
+    contents: write
+
+  jobs:
+    run-agent:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Set up Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '20'
+
+        - name: Install build tools
+          run: npm install
+
+        - name: Build (compile only)
+          run: npm run build --if-present
+
+        - name: Install bman-dev-agent
+          run: npm i -g @b-man/bman-dev-agent
+
+        - name: Run bman-dev-agent
+          env:
+            CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          run: bman-dev-agent resolve --all --push
+  ```
+- The workflow exits non-zero if `bman-dev-agent` fails or reports a blocked task; a zero exit leaves the build green.
+
 ## Workflow
 - Define tasks in the branch's tracker (`.bman/tracker/<branch>/tasks.md`), keeping one clear task per run so outputs stay deterministic.
 - Use `bman-dev-agent add-task "<desc>"` to append a task; it will create the branch tracker automatically if it doesn't exist.
