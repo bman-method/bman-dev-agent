@@ -57,7 +57,7 @@ The agent **does not return text**.
 
 It must write a JSON file to the path provided in the prompt, containing:
 - `taskId` (string)
-- `status` (`success | blocked | failed`)
+- `status` (`success | blocked`)
 - `commitMessage` (string)
 - `changesMade` (string)
 - `assumptions` (string)

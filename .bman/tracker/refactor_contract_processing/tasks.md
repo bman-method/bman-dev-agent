@@ -61,4 +61,4 @@ const agentOutput = validator.parse(string);
 
 - [x] TASK-3: Remove the "(type: string)" from the field description in the schema, and make sure that buildOutputContract adds it properly (for the prompt)
 
-- [ ] TASK-4: Remove status "failed" from agentOutputSchema. In addition, change the description of content to: "The status of the task implementation, can be success or blocked. Note that if the implementation could not be completed or verified from any reason (network connectivity, test failure, compilation issues, linter issues or misunderstanding of the requirements), then the status should be blocked.
+- [x] TASK-4: Remove status "failed" from agentOutputSchema. In addition, change the description of content to: "The status of the task implementation, can be success or blocked. Note that if the implementation could not be completed or verified from any reason (network connectivity, test failure, compilation issues, linter issues or misunderstanding of the requirements), then the status should be blocked.

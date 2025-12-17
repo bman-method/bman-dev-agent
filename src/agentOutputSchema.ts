@@ -7,8 +7,9 @@ export const agentOutputSchema = {
   },
   status: {
     type: "string",
-    descriptionOfContent: 'One of "success", "blocked", or "failed".',
-    enum: ["success", "blocked", "failed"],
+    descriptionOfContent:
+      "The status of the task implementation, can be success or blocked. Note that if the implementation could not be completed or verified from any reason (network connectivity, test failure, compilation issues, linter issues or misunderstanding of the requirements), then the status should be blocked.",
+    enum: ["success", "blocked"],
   },
   commitMessage: {
     type: "string",

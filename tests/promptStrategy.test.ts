@@ -11,7 +11,11 @@ const task: Task = {
 const contract: OutputContract = {
   fields: [
     { name: "taskId", descriptionOfContent: "Task identifier" },
-    { name: "status", descriptionOfContent: "success | blocked | failed" },
+    {
+      name: "status",
+      descriptionOfContent:
+        "The status of the task implementation, can be success or blocked. Note that if the implementation could not be completed or verified from any reason (network connectivity, test failure, compilation issues, linter issues or misunderstanding of the requirements), then the status should be blocked.",
+    },
     { name: "commitMessage", descriptionOfContent: "Summary", maxLines: 5 },
     { name: "changesMade", descriptionOfContent: "Changes", maxLines: 20 },
     { name: "assumptions", descriptionOfContent: "Assumptions", maxLines: 20 },
@@ -60,7 +64,7 @@ describe("DefaultPromptStrategy", () => {
     expect(prompt).not.toContain("TASK-2 [blocked]");
     expect(prompt).toContain("Output file:\n.out/TASK-5/run-123.json");
     expect(prompt).toContain(
-      "Output contract:\n- taskId: Task identifier\n- status: success | blocked | failed\n- commitMessage (max 5 lines): Summary\n- changesMade (max 20 lines): Changes\n- assumptions (max 20 lines): Assumptions\n- decisionsTaken (max 20 lines): Decisions\n- pointsOfUnclarity (max 20 lines): Unclarities\n- testsRun (max 20 lines): Tests"
+      "Output contract:\n- taskId: Task identifier\n- status: The status of the task implementation, can be success or blocked. Note that if the implementation could not be completed or verified from any reason (network connectivity, test failure, compilation issues, linter issues or misunderstanding of the requirements), then the status should be blocked.\n- commitMessage (max 5 lines): Summary\n- changesMade (max 20 lines): Changes\n- assumptions (max 20 lines): Assumptions\n- decisionsTaken (max 20 lines): Decisions\n- pointsOfUnclarity (max 20 lines): Unclarities\n- testsRun (max 20 lines): Tests"
     );
     expect(prompt).toContain("Instructions:\nYou are executing exactly one task.");
   });

@@ -10,7 +10,8 @@ describe("DefaultOutputContract", () => {
       },
       {
         name: "status",
-        descriptionOfContent: '(type: string) One of "success", "blocked", or "failed".',
+        descriptionOfContent:
+          "(type: string) The status of the task implementation, can be success or blocked. Note that if the implementation could not be completed or verified from any reason (network connectivity, test failure, compilation issues, linter issues or misunderstanding of the requirements), then the status should be blocked.",
       },
       {
         name: "commitMessage",
