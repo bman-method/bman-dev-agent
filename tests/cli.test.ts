@@ -2,8 +2,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DefaultCLI, UsageError, main, parseArgs } from "../src/cli";
+import { DefaultConfigLoader } from "../src/configLoader";
 import { DefaultGitOps } from "../src/gitOps";
+import { parseDocument } from "../src/taskTracker";
 import { Task } from "../src/types";
+import { getTrackerFolderName } from "../src/tasksFile";
 
 const baseConfig = { agent: "codex", tasksFile: "tasks.md", outputDir: ".out" };
 
@@ -300,6 +303,30 @@ describe("DefaultCLI", () => {
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining(`Added task TASK-1 to ${path.resolve(tasksFile)}`)
       );
+    } finally {
+      logSpy.mockRestore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("creates the tracker file under an encoded branch directory", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-add-task-"));
+    const branchName = "ai/brrr feature";
+    const git = { getCurrentBranchName: jest.fn(() => branchName) } as any;
+    const configPath = path.join(dir, ".bman", "config.json");
+    const cli = new DefaultCLI({ configLoader: new DefaultConfigLoader(configPath), git });
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await cli.run({ command: "add-task", taskDescription: "Weird branch task" });
+
+      const folder = getTrackerFolderName(branchName);
+      const tasksFile = path.join(dir, ".bman", "tracker", folder, "tasks.md");
+      const saved = fs.readFileSync(tasksFile, "utf8");
+      const doc = parseDocument(saved);
+
+      expect(doc.tasks[0]?.title).toBe("Weird branch task");
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(path.resolve(tasksFile)));
     } finally {
       logSpy.mockRestore();
       fs.rmSync(dir, { recursive: true, force: true });
