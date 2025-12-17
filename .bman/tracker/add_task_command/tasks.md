@@ -10,3 +10,5 @@ then add the new task to the bottom of the tasks list and give it a number (+1 o
 
 - [x] TASK-3: Change usage such that the options will be related to the specific command
 * --all and --push are relevant only for "resolve" for example
+
+- [ ] TASK-4: The function addTask must not be defined in cli.ts. It belongs to the tracker module. The tracker module shoud expose addTask function as part of its interface - update types.ts if needed.
