@@ -59,4 +59,4 @@ const agentOutput = validator.parse(string);
 
 - [x] TASK-2: Unite ResultReader and ResulValidator into one class. Both are very small, especially the reader.
 
-- [ ] TASK-3: Remove the "(type: string)" from the field description in the schema, and make sure that buildOutputContract adds it properly (for the prompt)
+- [x] TASK-3: Remove the "(type: string)" from the field description in the schema, and make sure that buildOutputContract adds it properly (for the prompt)

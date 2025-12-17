@@ -1,3 +1,4 @@
+import { agentOutputSchema } from "../src/agentOutputSchema";
 import { DefaultOutputContract } from "../src/outputContract";
 
 describe("DefaultOutputContract", () => {
@@ -43,5 +44,20 @@ describe("DefaultOutputContract", () => {
         maxLines: 20,
       },
     ]);
+  });
+
+  it("prefixes contract descriptions with the field type, keeping schema descriptions clean", () => {
+    Object.values(agentOutputSchema).forEach((field) => {
+      expect(field.descriptionOfContent?.startsWith("(type:")).toBe(false);
+    });
+
+    DefaultOutputContract.fields.forEach((field) => {
+      const schemaField = agentOutputSchema[field.name as keyof typeof agentOutputSchema];
+      const schemaDescription = schemaField.descriptionOfContent ?? "";
+      const expectedDescription = schemaDescription
+        ? `(type: ${schemaField.type}) ${schemaDescription}`
+        : `(type: ${schemaField.type})`;
+      expect(field.descriptionOfContent).toBe(expectedDescription);
+    });
   });
 });
