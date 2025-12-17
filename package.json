@@ -1,6 +1,6 @@
 {
-  "name": "bman-dev-agent",
-  "version": "0.0.1",
+  "name": "@b-man/bman-dev-agent",
+  "version": "0.1.0",
   "private": true,
   "bin": {
     "bman-dev-agent": "dist/cli.js"
@@ -19,5 +19,9 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bman-method/bman-dev-agent.git"
   }
 }
