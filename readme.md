@@ -1,6 +1,6 @@
 # bman-dev-agent (B-MAN aligned)
 
-Developer-controlled CLI that runs a single coding task at a time using the B-MAN Method (see `bman-method.md`). It keeps the AI inside strict boundaries, records its reasoning, and leaves clean, reviewable commits.
+Developer-controlled CLI that runs a single coding task at a time using the [B-MAN Method](https://github.com/bman-method) . It keeps the AI inside strict boundaries, records its reasoning, and leaves clean, reviewable commits.
 
 ## How this tool aligns with the B-MAN Method
 - One task -> one commit: the orchestrator picks the next open entry from the branch-specific tracker (`.bman/tracker/<branch>/tasks.md` by default), ensures a clean working tree, updates the task tracker, and commits everything from the run together (code + tracker change).
@@ -10,10 +10,9 @@ Developer-controlled CLI that runs a single coding task at a time using the B-MA
 - Abort is a feature: a `blocked` status stops further tasks, persists the reason in the task tracker, and preserves the run artifacts so the human can refine and rerun.
 
 ## Quick start
-- Install deps: `npm install`
-- Build once: `npm run build`
-- Configure (optional): `.bman/config.json` sets `tasksFile` and `outputDir` (defaults created automatically; tracker defaults to `.bman/tracker/<branch>/tasks.md` based on the current git branch).
-- Run the next task: `node dist/cli.js resolve` (or `./bin/bman-dev-agent resolve`) for one task, `node dist/cli.js resolve --all` to run sequentially until a block/failure. Add `--push` to push commits after each task (opt-in).
+- Install: `npm i -g @b-man/bman-dev-agent`
+- Add task with: `bman-dev-agent add-task <description>`
+- Run the next task: `bman-dev-agent resolve` for one task, `bman-dev-agent resolve --all` to run sequentially until a block/failure. Add `--push` to push commits after each task (opt-in).
 
 ## CI (GitHub Actions) example
 - Create a repository secret `CODEX_API_KEY` that holds your Codex API key (Settings → Secrets and variables → Actions → New repository secret).
