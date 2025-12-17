@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import fs from "node:fs";
 import path from "node:path";
 import { CodexAgent } from "./codeAgent";
 import { DefaultCommitMessageFormatter } from "./commitMessageFormatter";
@@ -24,7 +23,6 @@ import {
   OrchestratorFactory,
   TaskTrackerDocument,
   TaskTracker,
-  Task,
 } from "./types";
 
 interface CLIOverrides {
@@ -64,7 +62,7 @@ export class DefaultCLI implements CLI {
     }
 
     if (options.command === "add-task") {
-      this.addTask(branchName, options);
+      this.handleAddTask(branchName, options);
       return;
     }
 
@@ -150,7 +148,7 @@ export class DefaultCLI implements CLI {
     return factory.create(deps);
   }
 
-  private addTask(branchName: string, options: CLIOptions): void {
+  private handleAddTask(branchName: string, options: CLIOptions): void {
     const description = options.taskDescription?.trim();
     if (!description) {
       throw new UsageError("Task description is required for add-task.");
@@ -161,26 +159,10 @@ export class DefaultCLI implements CLI {
     configLoader.validate(config);
 
     const taskTracker = this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
-    const document = this.loadOrInitializeDocument(taskTracker, config.tasksFile);
-    const nextTaskId = this.getNextTaskId(document.tasks);
-
-    const updatedDoc: TaskTrackerDocument = {
-      ...document,
-      tasks: [
-        ...document.tasks,
-        {
-          id: nextTaskId,
-          title: description,
-          description: "",
-          status: "open",
-        },
-      ],
-    };
-
-    taskTracker.saveDocument(updatedDoc);
+    const task = taskTracker.addTask(description);
 
     const resolvedPath = path.resolve(config.tasksFile);
-    console.log(`Added task ${nextTaskId} to ${resolvedPath}`);
+    console.log(`Added task ${task.id} to ${resolvedPath}`);
   }
 
   private getBranchNameOrExit(git: GitOps): string | null {
@@ -192,27 +174,6 @@ export class DefaultCLI implements CLI {
       process.exitCode = 1;
       return null;
     }
-  }
-
-  private loadOrInitializeDocument(taskTracker: TaskTracker, tasksFile: string): TaskTrackerDocument {
-    const resolvedPath = path.resolve(tasksFile);
-    if (!fs.existsSync(resolvedPath)) {
-      return { preludeText: "", tasks: [] };
-    }
-    return taskTracker.loadDocument();
-  }
-
-  private getNextTaskId(tasks: Task[]): string {
-    let lastNumber = 0;
-    for (let i = tasks.length - 1; i >= 0; i--) {
-      const match = /^TASK-(\d+)$/i.exec(tasks[i].id.trim());
-      if (match) {
-        lastNumber = parseInt(match[1], 10);
-        break;
-      }
-    }
-    const nextNumber = lastNumber + 1;
-    return `TASK-${nextNumber}`;
   }
 }
 

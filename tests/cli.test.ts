@@ -33,6 +33,7 @@ function makeTaskTracker(tasks: Task[]) {
     markDone: jest.fn(),
     markBlocked: jest.fn(),
     saveDocument: jest.fn(),
+    addTask: jest.fn(),
   };
 }
 
@@ -230,24 +231,26 @@ describe("DefaultCLI", () => {
     expect((gitInstance as any).pushEnabled).toBe(true);
   });
 
-  it("appends the next task id and saves the updated document", async () => {
+  it("delegates task creation to the task tracker and logs the result", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-add-task-"));
     const tasksFile = path.join(dir, "tasks.md");
     fs.writeFileSync(tasksFile, "existing content");
 
-    const existingTasks: Task[] = [
-      { id: "TASK-1", title: "First", description: "", status: "open" },
-      { id: "OTHER", title: "Other", description: "", status: "done" },
-      { id: "TASK-3", title: "Third", description: "", status: "open" },
-    ];
+    const addedTask: Task = {
+      id: "TASK-4",
+      title: "New task",
+      description: "",
+      status: "open",
+    };
     const configLoader = makeConfigLoader();
     configLoader.load.mockReturnValue({ ...baseConfig, tasksFile });
     const taskTracker = {
-      loadDocument: jest.fn(() => ({ preludeText: "Prelude", tasks: existingTasks })),
+      loadDocument: jest.fn(),
       pickNextTask: jest.fn(),
       markDone: jest.fn(),
       markBlocked: jest.fn(),
       saveDocument: jest.fn(),
+      addTask: jest.fn(() => addedTask),
     };
     const git = makeGit();
     const cli = new DefaultCLI({ configLoader, taskTracker, git });
@@ -256,14 +259,8 @@ describe("DefaultCLI", () => {
     try {
       await cli.run({ command: "add-task", taskDescription: "New task" });
 
-      expect(taskTracker.saveDocument).toHaveBeenCalledWith({
-        preludeText: "Prelude",
-        tasks: [
-          ...existingTasks,
-          { id: "TASK-4", title: "New task", description: "", status: "open" },
-        ],
-      });
-      expect(taskTracker.loadDocument).toHaveBeenCalled();
+      expect(taskTracker.addTask).toHaveBeenCalledWith("New task");
+      expect(taskTracker.loadDocument).not.toHaveBeenCalled();
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining(`Added task TASK-4 to ${path.resolve(tasksFile)}`)
       );
@@ -273,17 +270,24 @@ describe("DefaultCLI", () => {
     }
   });
 
-  it("initializes a new document when the tasks file is missing", async () => {
+  it("still logs when the tasks file is missing", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-add-task-"));
     const tasksFile = path.join(dir, "tasks.md");
     const configLoader = makeConfigLoader();
     configLoader.load.mockReturnValue({ ...baseConfig, tasksFile });
+    const addedTask: Task = {
+      id: "TASK-1",
+      title: "First task",
+      description: "",
+      status: "open",
+    };
     const taskTracker = {
       loadDocument: jest.fn(),
       pickNextTask: jest.fn(),
       markDone: jest.fn(),
       markBlocked: jest.fn(),
       saveDocument: jest.fn(),
+      addTask: jest.fn(() => addedTask),
     };
     const git = makeGit();
     const cli = new DefaultCLI({ configLoader, taskTracker, git });
@@ -292,11 +296,7 @@ describe("DefaultCLI", () => {
     try {
       await cli.run({ command: "add-task", taskDescription: "First task" });
 
-      expect(taskTracker.loadDocument).not.toHaveBeenCalled();
-      expect(taskTracker.saveDocument).toHaveBeenCalledWith({
-        preludeText: "",
-        tasks: [{ id: "TASK-1", title: "First task", description: "", status: "open" }],
-      });
+      expect(taskTracker.addTask).toHaveBeenCalledWith("First task");
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining(`Added task TASK-1 to ${path.resolve(tasksFile)}`)
       );

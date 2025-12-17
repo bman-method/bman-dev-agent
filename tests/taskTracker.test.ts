@@ -141,4 +141,52 @@ describe("DefaultTaskTracker", () => {
     ];
     expect(() => tracker.markDone(tasks, "missing")).toThrow(/not found/);
   });
+
+  it("adds a new task with the next sequential TASK id", () => {
+    withTempDir((dir) => {
+      const filePath = path.join(dir, "tasks.md");
+      const existingTasks: Task[] = [
+        { id: "TASK-1", title: "First", description: "", status: "open" },
+        { id: "OTHER", title: "Other", description: "", status: "done" },
+        { id: "TASK-3", title: "Third", description: "", status: "open" },
+      ];
+      fs.writeFileSync(
+        filePath,
+        serializeDocument({ preludeText: "Prelude", tasks: existingTasks })
+      );
+
+      const tracker = new DefaultTaskTracker(filePath);
+      const addedTask = tracker.addTask("New task");
+
+      expect(addedTask).toEqual({
+        id: "TASK-4",
+        title: "New task",
+        description: "",
+        status: "open",
+      });
+      const saved = parseDocument(fs.readFileSync(filePath, "utf8"));
+      expect(saved).toEqual({
+        preludeText: "Prelude\n",
+        tasks: [...existingTasks, addedTask],
+      });
+    });
+  });
+
+  it("initializes a new document when adding the first task", () => {
+    withTempDir((dir) => {
+      const filePath = path.join(dir, "tasks.md");
+      const tracker = new DefaultTaskTracker(filePath);
+
+      const addedTask = tracker.addTask("First task");
+
+      expect(addedTask.id).toBe("TASK-1");
+      const saved = parseDocument(fs.readFileSync(filePath, "utf8"));
+      expect(saved).toEqual({
+        preludeText: "",
+        tasks: [
+          { id: "TASK-1", title: "First task", description: "", status: "open" },
+        ],
+      });
+    });
+  });
 });

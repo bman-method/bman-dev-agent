@@ -10,6 +10,23 @@ export class DefaultTaskTracker implements TaskTracker {
         return parseDocument(content);
     }
 
+    addTask(title: string): Task {
+        const document = this.loadOrInitializeDocument();
+        const nextTaskId = this.getNextTaskId(document.tasks);
+        const newTask: Task = {
+            id: nextTaskId,
+            title,
+            description: "",
+            status: "open",
+        };
+        const updatedDocument: TaskTrackerDocument = {
+            ...document,
+            tasks: [...document.tasks, newTask],
+        };
+        this.saveDocument(updatedDocument);
+        return newTask;
+    }
+
     pickNextTask(tasks: Task[]): Task | null {
         return tasks.find((task) => task.status === "open") ?? null;
     }
@@ -28,6 +45,14 @@ export class DefaultTaskTracker implements TaskTracker {
         fs.writeFileSync(fullPath, content, "utf8");
     }
 
+    private loadOrInitializeDocument(): TaskTrackerDocument {
+        const fullPath = this.resolvePath();
+        if (!fs.existsSync(fullPath)) {
+            return { preludeText: "", tasks: [] };
+        }
+        return this.loadDocument();
+    }
+
     private updateStatus(tasks: Task[], taskId: string, status: TaskStatus): Task[] {
         let found = false;
         const updated = tasks.map((task) => {
@@ -41,6 +66,19 @@ export class DefaultTaskTracker implements TaskTracker {
             throw new Error(`Task with id "${taskId}" not found.`);
         }
         return updated;
+    }
+
+    private getNextTaskId(tasks: Task[]): string {
+        let lastNumber = 0;
+        for (let i = tasks.length - 1; i >= 0; i--) {
+            const match = /^TASK-(\d+)$/i.exec(tasks[i].id.trim());
+            if (match) {
+                lastNumber = parseInt(match[1], 10);
+                break;
+            }
+        }
+        const nextNumber = lastNumber + 1;
+        return `TASK-${nextNumber}`;
     }
 
     private resolvePath(): string {
