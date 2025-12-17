@@ -17,6 +17,7 @@ Developer-controlled CLI that runs a single coding task at a time using the B-MA
 
 ## Workflow
 - Define tasks in the branch's tracker (`.bman/tracker/<branch>/tasks.md`), keeping one clear task per run so outputs stay deterministic.
+- Use `bman-dev-agent add-task "<desc>"` to append a task; it will create the branch tracker automatically if it doesn't exist.
 - Let `bman-dev-agent` execute tasks sequentially (single run or `--all`), producing a dedicated commit per task with the tracker update included.
 - Review every task commit: the commit format, tracker status, and saved AI thoughts make it fast to spot intent, reasoning, and gaps.
 - If you find an issue, choose how to respond:
