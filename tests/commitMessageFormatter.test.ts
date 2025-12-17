@@ -93,7 +93,7 @@ describe("DefaultCommitMessageFormatter", () => {
   it("uses structured thoughts as fallback reason when commitMessage is empty", () => {
     const output: AgentOutput = {
       taskId: task.id,
-      status: "failed",
+      status: "blocked",
       commitMessage: "",
       changesMade: "Blocked on DB migration",
       assumptions: "None",

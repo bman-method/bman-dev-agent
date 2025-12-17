@@ -1,3 +1,5 @@
+import type { AgentOutput, AgentOutputStatus } from "./agentOutputSchema";
+
 export interface Config {
   agent: string;
   tasksFile: string;
@@ -70,27 +72,8 @@ export interface CodeAgent {
   run(prompt: string, ctx: RunContext): Promise<void>;
 }
 
-export type RawAgentResult = unknown;
-
-export type AgentOutputStatus = "success" | "blocked" | "failed";
-
-export interface AgentOutput {
-  taskId: string;
-  status: AgentOutputStatus;
-  commitMessage: string;
-  changesMade: string;
-  assumptions: string;
-  decisionsTaken: string;
-  pointsOfUnclarity: string;
-  testsRun: string;
-}
-
-export interface ResultReader {
-  read(path: string): RawAgentResult;
-}
-
-export interface ResultValidator {
-  validate(raw: RawAgentResult, contract: OutputContract): AgentOutput;
+export interface ResultParser {
+  readAndValidate(path: string): AgentOutput;
 }
 
 export type CommitStatusLabel = "completed" | "blocked";
@@ -120,8 +103,7 @@ export interface OrchestratorDeps {
   runContextFactory: RunContextFactory;
   contract: OutputContract;
   agent: CodeAgent;
-  resultReader: ResultReader;
-  resultValidator: ResultValidator;
+  resultParser: ResultParser;
   commitFormatter: CommitMessageFormatter;
   git: GitOps;
 }
@@ -143,3 +125,5 @@ export interface CLIOptions {
 export interface CLI {
   run(options: CLIOptions): Promise<void>;
 }
+
+export type { AgentOutput, AgentOutputStatus };
