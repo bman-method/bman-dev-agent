@@ -1,7 +1,6 @@
 {
   "name": "@b-man/bman-dev-agent",
   "version": "0.1.0",
-  "private": true,
   "bin": {
     "bman-dev-agent": "dist/cli.js"
   },
