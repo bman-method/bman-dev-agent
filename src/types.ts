@@ -72,14 +72,8 @@ export interface CodeAgent {
   run(prompt: string, ctx: RunContext): Promise<void>;
 }
 
-export type RawAgentResult = string;
-
-export interface ResultReader {
-  read(path: string): RawAgentResult;
-}
-
-export interface ResultValidator {
-  validate(raw: RawAgentResult, contract: OutputContract): AgentOutput;
+export interface ResultParser {
+  readAndValidate(path: string): AgentOutput;
 }
 
 export type CommitStatusLabel = "completed" | "blocked";
@@ -109,8 +103,7 @@ export interface OrchestratorDeps {
   runContextFactory: RunContextFactory;
   contract: OutputContract;
   agent: CodeAgent;
-  resultReader: ResultReader;
-  resultValidator: ResultValidator;
+  resultParser: ResultParser;
   commitFormatter: CommitMessageFormatter;
   git: GitOps;
 }

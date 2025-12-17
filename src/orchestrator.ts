@@ -5,7 +5,7 @@ export class DefaultOrchestrator implements Orchestrator {
     constructor(private readonly deps: OrchestratorDeps) { }
 
     async runOnce(): Promise<void> {
-        const { configLoader, branchName, taskTracker, promptStrategy, runContextFactory, contract, agent, resultReader, resultValidator, commitFormatter, git, } = this.deps;
+        const { configLoader, branchName, taskTracker, promptStrategy, runContextFactory, contract, agent, resultParser, commitFormatter, git, } = this.deps;
         const config = configLoader.load(branchName);
         configLoader.validate(config);
         const trackerDocument = taskTracker.loadDocument();
@@ -31,8 +31,7 @@ export class DefaultOrchestrator implements Orchestrator {
         let tasksUpdated = false;
         try {
             await agent.run(prompt, ctx);
-            const raw = resultReader.read(ctx.outputPath);
-            output = resultValidator.validate(raw, contract);
+            output = resultParser.readAndValidate(ctx.outputPath);
             if (output.taskId !== task.id) {
                 throw new OrchestratorError(`AgentOutput.taskId (${output.taskId}) does not match current task (${task.id}).`);
             }
