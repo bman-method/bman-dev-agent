@@ -7,8 +7,7 @@ import { DefaultGitOps } from "./gitOps";
 import { DefaultOrchestratorFactory } from "./orchestrator";
 import { DefaultOutputContract } from "./outputContract";
 import { DefaultPromptStrategy } from "./promptStrategy";
-import { DefaultResultReader } from "./resultReader";
-import { DefaultResultValidator } from "./resultValidator";
+import { DefaultResultParser } from "./resultParser";
 import { DefaultRunContextFactory } from "./runContextFactory";
 import { DefaultTaskTracker } from "./taskTracker";
 import {
@@ -138,8 +137,7 @@ export class DefaultCLI implements CLI {
       runContextFactory: new DefaultRunContextFactory(),
       contract: DefaultOutputContract,
       agent: new CodexAgent(),
-      resultReader: new DefaultResultReader(),
-      resultValidator: new DefaultResultValidator(),
+      resultParser: new DefaultResultParser(),
       commitFormatter: new DefaultCommitMessageFormatter(),
       git: resolvedGit,
     };

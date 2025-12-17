@@ -1,3 +1,4 @@
+import { agentOutputSchema } from "../src/agentOutputSchema";
 import { DefaultOutputContract } from "../src/outputContract";
 
 describe("DefaultOutputContract", () => {
@@ -9,7 +10,8 @@ describe("DefaultOutputContract", () => {
       },
       {
         name: "status",
-        descriptionOfContent: '(type: string) One of "success", "blocked", or "failed".',
+        descriptionOfContent:
+          "(type: string) The status of the task implementation, can be success or blocked. Note that if the implementation could not be completed or verified from any reason (network connectivity, test failure, compilation issues, linter issues or misunderstanding of the requirements), then the status should be blocked.",
       },
       {
         name: "commitMessage",
@@ -43,5 +45,20 @@ describe("DefaultOutputContract", () => {
         maxLines: 20,
       },
     ]);
+  });
+
+  it("prefixes contract descriptions with the field type, keeping schema descriptions clean", () => {
+    Object.values(agentOutputSchema).forEach((field) => {
+      expect(field.descriptionOfContent?.startsWith("(type:")).toBe(false);
+    });
+
+    DefaultOutputContract.fields.forEach((field) => {
+      const schemaField = agentOutputSchema[field.name as keyof typeof agentOutputSchema];
+      const schemaDescription = schemaField.descriptionOfContent ?? "";
+      const expectedDescription = schemaDescription
+        ? `(type: ${schemaField.type}) ${schemaDescription}`
+        : `(type: ${schemaField.type})`;
+      expect(field.descriptionOfContent).toBe(expectedDescription);
+    });
   });
 });

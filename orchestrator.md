@@ -53,7 +53,7 @@ class DefaultOrchestrator implements Orchestrator {
         );
       }
 
-      // Commit (even on blocked/failed: keeps trace; stop later if not success)
+      // Commit (even on blocked: keeps trace; stop later if not success)
       const title = commitFormatter.formatTitle(task, output);
       const body = commitFormatter.formatBody(task, output);
 
@@ -67,7 +67,7 @@ class DefaultOrchestrator implements Orchestrator {
       if (output.status === "success") {
         newTasks = taskTracker.markDone(tasks, task.id, commitSha);
       } else {
-        // Use commitMessage as the “reason” text for blocked/failed
+        // Use commitMessage as the “reason” text for blocked
         const reason = (output.commitMessage || "").trim() || `Task ended with status: ${output.status}`;
         newTasks = taskTracker.markBlocked(tasks, task.id, reason, commitSha);
       }
@@ -109,8 +109,7 @@ class DefaultOrchestrator implements Orchestrator {
       const next = taskTracker.pickNextTask(tasks);
       if (!next) return;
 
-      await this.runOnce(); // will throw on blocked/failed
+      await this.runOnce(); // will throw on blocked
     }
   }
 }
-

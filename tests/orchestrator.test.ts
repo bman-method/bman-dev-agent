@@ -51,11 +51,8 @@ function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
       name: "codex",
       run: jest.fn().mockResolvedValue(undefined),
     },
-    resultReader: {
-      read: jest.fn(() => ({})),
-    },
-    resultValidator: {
-      validate: jest.fn(
+    resultParser: {
+      readAndValidate: jest.fn(
         () =>
           ({
             taskId: "TASK-11",
@@ -124,8 +121,7 @@ describe("DefaultOrchestrator", () => {
     );
 
     expect(deps.agent.run).toHaveBeenCalledWith("PROMPT", expect.objectContaining({ taskId: "TASK-11" }));
-    expect(deps.resultReader.read).toHaveBeenCalledWith("/tmp/out.json");
-    expect(deps.resultValidator.validate).toHaveBeenCalled();
+    expect(deps.resultParser.readAndValidate).toHaveBeenCalledWith("/tmp/out.json");
     expect(deps.git.commit).toHaveBeenCalledWith("title", "body");
     expect(deps.git.push).toHaveBeenCalled();
 
@@ -147,8 +143,8 @@ describe("DefaultOrchestrator", () => {
 
   it("marks blocked, saves, and throws when agent output is blocked", async () => {
     const deps = makeDeps({
-      resultValidator: {
-        validate: jest.fn(
+      resultParser: {
+        readAndValidate: jest.fn(
           () =>
             ({
               taskId: "TASK-11",
@@ -177,8 +173,8 @@ describe("DefaultOrchestrator", () => {
 
   it("best-effort marks blocked when validation fails", async () => {
     const deps = makeDeps({
-      resultValidator: {
-        validate: jest.fn(() => {
+      resultParser: {
+        readAndValidate: jest.fn(() => {
           throw new Error("bad output");
         }),
       },

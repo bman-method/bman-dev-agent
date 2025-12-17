@@ -110,7 +110,7 @@ interface CodeAgent {
 
 type RawAgentResult = unknown;
 
-type AgentOutputStatus = "success" | "blocked" | "failed";
+type AgentOutputStatus = "success" | "blocked";
 
 interface AgentOutput {
   taskId: string;
