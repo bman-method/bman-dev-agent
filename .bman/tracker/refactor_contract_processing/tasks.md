@@ -57,6 +57,6 @@ const agentOutput = validator.parse(string);
 }
 ```
 
-- [ ] TASK-2: Remove custom validation and decoupling.
-* Make outputContract to define the agentOutputSchema and the AgentOutput type instead of what it does now.
-* Change resultValidator to use the new SchemaValidator.
+- [ ] TASK-2: Unite ResultReader and ResulValidator into one class. Both are very small, especially the reader.
+
+- [ ] TASK-3: Remove the "(type: string)" from the field description in the schema, and make sure that buildOutputContract adds it properly (for the prompt)
