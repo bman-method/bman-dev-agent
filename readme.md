@@ -1,71 +1,183 @@
 # bman-dev-agent (B-MAN aligned)
 
-Developer-controlled CLI that runs a single coding task at a time using the [B-MAN Method](https://github.com/bman-method) . It keeps the AI inside strict boundaries, records its reasoning, and leaves clean, reviewable commits.
+A developer-controlled CLI that resolves **one coding task at a time** using the B-MAN Method.
+It keeps the agent inside strict boundaries, produces **clean, reviewable commits**, and stores an **AI self-report** (assumptions, decisions, uncertainties, tests) in the commit message.
 
-## How this tool aligns with the B-MAN Method
-- One task -> one commit: the orchestrator picks the next open entry from the branch-specific tracker (`.bman/tracker/<branch>/tasks.md` by default), ensures a clean working tree, updates the task tracker, and commits everything from the run together (code + tracker change).
-- Explicit boundaries: prompts include the task id/title/description, tasks prelude, list of completed tasks, the exact output path, and instructions to write only the JSON output to that path.
-- Explain every change: the output contract (`src/outputContract.ts`) requires structured string fields (`changesMade`, `assumptions`, `decisionsTaken`, `pointsOfUnclarity`, `testsRun`); the commit formatter prefixes the agent-supplied commit message with `TASK-XX [completed/blocked]`, appends the AI Thoughts block, and closes with an AI-generated warning to flag human review.
-- Human review ready: Git is the source of truth; runs halt on non-success statuses, leaving the commit, tracker status, and Codex logs (`<outputDir>/logs/codex-<taskId>-<timestamp>.log`) for inspection before proceeding.
-- Abort is a feature: a `blocked` status stops further tasks, persists the reason in the task tracker, and preserves the run artifacts so the human can refine and rerun.
+---
+
+## Key ideas (B-MAN alignment)
+
+### One task → one commit
+
+The orchestrator picks the next open task from the branch tracker (`.bman/tracker/<branch>/tasks.md` by default), **requires a clean working tree**, updates the tracker, and commits the change set **as a single commit** (code + tracker update).
+
+### Explicit boundaries
+
+Prompts include:
+
+* task id / title / description
+* task prelude and list of completed tasks
+* the **exact output path**
+* instructions to write **only** the JSON output to that path
+
+This keeps the agent narrowly scoped and prevents uncontrolled edits.
+
+### Explain every change (AI self-report)
+
+The output contract (`src/outputContract.ts`) requires structured, human-readable fields such as:
+
+* `changesMade`
+* `assumptions`
+* `decisionsTaken`
+* `pointsOfUncertainty`
+* `testsRun`
+
+The commit formatter:
+
+* prefixes the subject with `TASK-XX [completed|blocked]`
+* appends an **AI Thoughts** block containing the self-report
+* ends with an explicit **human review warning**
+
+> This is **not chain-of-thought extraction**. It is a deliberate, structured self-report designed for fast and safe human review.
+
+### Abort is a feature
+
+A task may end with status `blocked`.
+
+* The reason is persisted in the task tracker
+* Run artifacts and logs are preserved
+* Further tasks are **not executed** until a human intervenes
+
+This makes early stopping a first-class safety mechanism rather than a failure mode.
+
+---
+
+## Requirements
+
+* Node.js **20+**
+* Git
+* A configured LLM provider API key (see below)
+* A **clean working tree** before running `resolve`
+
+---
 
 ## Quick start
-- Install: `npm i -g @b-man/bman-dev-agent`
-- Add task with: `bman-dev-agent add-task <description>`
-- Run the next task: `bman-dev-agent resolve` for one task, `bman-dev-agent resolve --all` to run sequentially until a block/failure. Add `--push` to push commits after each task (opt-in).
+
+```bash
+npm i -g @b-man/bman-dev-agent
+
+# add a task to the current branch tracker
+bman-dev-agent add-task "Describe the change + DoD + tests"
+
+# resolve the next open task (single commit)
+bman-dev-agent resolve
+
+# resolve tasks sequentially until blocked or failed
+bman-dev-agent resolve --all
+
+# push after each task commit (opt-in)
+bman-dev-agent resolve --all --push
+```
+
+---
+
+## LLM provider
+
+The agent reads provider credentials from environment variables:
+
+* `CODEX_API_KEY` – API key for the configured LLM provider
+
+Provider interaction logs are stored per run:
+
+```
+<outputDir>/logs/codex-<taskId>-<timestamp>.log
+```
+
+No credentials are written to disk or committed to Git.
+
+---
 
 ## CI (GitHub Actions) example
-- Create a repository secret `CODEX_API_KEY` that holds your Codex API key (Settings → Secrets and variables → Actions → New repository secret).
-- Ensure the workflow has `contents: write` so `bman-dev-agent --push` can commit and push per-task changes; the agent will process all open tasks sequentially on that branch, committing and pushing each. If it encounters a blocked task, it will still commit/push it and then fail the workflow to surface the issue.
-- Decide how to trigger: on matching branches (e.g., `ai/*`) or manually via `workflow_dispatch` for safer control.
-- Suggested workflow (Node shown; add other toolchains as needed):
-  ```yaml
-  name: bman-dev-agent
 
-  on:
-    workflow_dispatch:
-    push:
-      branches:
-        - ai/**
+**Notes:**
 
-  permissions:
-    contents: write
+* `contents: write` is required **only when using `--push`**
+* The workflow exits **non-zero** if a task is `blocked` or `failed`, surfacing the issue in CI
 
-  jobs:
-    run-agent:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
+```yaml
+name: bman-dev-agent
 
-        - name: Set up Node.js
-          uses: actions/setup-node@v4
-          with:
-            node-version: '20'
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ai/**
 
-        - name: Install build tools
-          run: npm install
+permissions:
+  contents: write
 
-        - name: Build (compile only)
-          run: npm run build --if-present
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-        - name: Install bman-dev-agent
-          run: npm i -g @b-man/bman-dev-agent
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-        - name: Run bman-dev-agent
-          env:
-            CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
-          run: bman-dev-agent resolve --all --push
-  ```
-- The workflow exits non-zero if `bman-dev-agent` fails or reports a blocked task; a zero exit leaves the build green.
+      - name: Install dependencies
+        run: npm ci
 
-## Workflow
-- Define tasks in the branch's tracker (`.bman/tracker/<branch>/tasks.md`), keeping one clear task per run so outputs stay deterministic.
-- Use `bman-dev-agent add-task "<desc>"` to append a task; it will create the branch tracker automatically if it doesn't exist.
-- Let `bman-dev-agent` execute tasks sequentially (single run or `--all`), producing a dedicated commit per task with the tracker update included.
-- Review every task commit: the commit format, tracker status, and saved AI thoughts make it fast to spot intent, reasoning, and gaps.
-- If you find an issue, choose how to respond:
-  - Option 1: add an improvement task that fixes the issue, like a regular human code review follow-up.
-  - Option 2: `git reset` to the last commit that passed review, then tighten the task description so the next run avoids the problem.
-- Resetting is sometimes the better path: it preserves a clean history and forces clearer task definitions, often yielding a better solution than incremental fixes.
-- Human review remains essential - this tool keeps work isolated and documented so you can audit commits quickly before letting the next task run.
+      - name: Build (compile only)
+        run: npm run build --if-present
+
+      - name: Install bman-dev-agent
+        run: npm i -g @b-man/bman-dev-agent
+
+      - name: Run bman-dev-agent
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+        run: bman-dev-agent resolve --all --push
+```
+
+---
+
+## Recommended workflow
+
+1. Create a new branch (e.g. `ai/<topic>`)
+2. Add tasks using `bman-dev-agent add-task "<description>"`
+
+   * Each task should include a **Definition of Done**
+   * Include explicit **test scenarios**
+   * Avoid more than ~10 tasks per tracker
+3. Run the agent (`resolve` or `resolve --all`)
+4. Review **every task commit**:
+
+   * code changes
+   * tracker update
+   * AI self-report in the commit body
+5. If something is wrong:
+
+   * **Option A:** add a follow-up task (like a normal human code review)
+   * **Option B:** `git reset` / `git revert` to the last good commit, refine the task definition, and rerun
+6. Proceed only after human approval
+
+Resetting is often a sign that the **task definition was insufficiently precise**. The AI self-report usually explains *why* the task went off-track, making it easier to refine and retry.
+
+---
+
+## Philosophy
+
+Human review remains essential.
+
+`bman-dev-agent` does not try to replace engineering judgment or make autonomous design decisions. Instead, it enforces:
+
+* isolation of work
+* explicit intent
+* documented uncertainty
+* commit-level accountability
+
+This keeps AI-assisted development fast **without sacrificing control or safety**.
