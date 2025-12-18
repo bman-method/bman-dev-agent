@@ -124,8 +124,8 @@ The long-term goal is to allow swapping or mixing agents **without changing the 
 
 **Notes:**
 
-* `contents: write` is required **only when using `--push`**
-* The workflow exits **non-zero** if a task is `blocked` or `failed`, surfacing the issue in CI
+* `contents: write` is required because when running in CI you must perform git push (--push) in order to be able to see the agent's changes
+* The workflow exits **non-zero** if a task is `blocked` or if the tool had any other failure, surfacing the issue in CI
 
 ```yaml
 name: bman-dev-agent
