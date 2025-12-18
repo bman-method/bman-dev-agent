@@ -1,6 +1,6 @@
 # bman-dev-agent (B-MAN aligned)
 
-A developer-controlled CLI that resolves **one coding task at a time** using the B-MAN Method.
+A developer-controlled CLI that resolves **one coding task at a time** using the [B-MAN Method](https://github.com/bman-method).
 It keeps the agent inside strict boundaries, produces **clean, reviewable commits**, and stores an **AI self-report** (assumptions, decisions, uncertainties, tests) in the commit message.
 
 ---
@@ -63,6 +63,11 @@ This makes early stopping a first-class safety mechanism rather than a failure m
 
 ## Quick start
 
+> **Prerequisites:**
+>
+> * `git` is installed and available on `PATH`
+> * `codex` CLI is installed and available on `PATH`
+
 ```bash
 npm i -g @b-man/bman-dev-agent
 
@@ -94,6 +99,24 @@ Provider interaction logs are stored per run:
 ```
 
 No credentials are written to disk or committed to Git.
+
+---
+
+## Supported dev agents
+
+`bman-dev-agent` is designed to be **agent-agnostic**. The orchestration, safety guarantees, and commit discipline are independent of the underlying LLM or coding tool.
+
+Currently supported:
+
+* **Codex CLI** – the only built-in implementation today (required in `PATH`)
+
+Planned / upcoming support:
+
+* **Gemini** (via CLI or API wrapper)
+* **Claude Code**
+* **Custom command adapter** (any executable that follows the input/output contract)
+
+The long-term goal is to allow swapping or mixing agents **without changing the workflow**, so teams can adopt new models while keeping the same B-MAN safety and review guarantees.
 
 ---
 
@@ -171,7 +194,9 @@ Resetting is often a sign that the **task definition was insufficiently precise*
 
 ## Philosophy
 
-Human review remains essential.
+> **AI should accelerate engineering — not obscure it.**  
+> **Control beats cleverness.**  
+> **Transparency beats autonomy.**
 
 `bman-dev-agent` does not try to replace engineering judgment or make autonomous design decisions. Instead, it enforces:
 
