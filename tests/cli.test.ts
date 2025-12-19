@@ -8,7 +8,12 @@ import { parseDocument } from "../src/taskTracker";
 import { Task } from "../src/types";
 import { getTrackerFolderName } from "../src/tasksFile";
 
-const baseConfig = { agent: "codex", tasksFile: "tasks.md", outputDir: ".out" };
+const baseConfig = {
+  agent: "codex" as const,
+  defaultAgent: "codex" as const,
+  tasksFile: "tasks.md",
+  outputDir: ".out",
+};
 
 type MockConfigLoader = { load: jest.Mock; validate: jest.Mock };
 
@@ -136,11 +141,66 @@ describe("DefaultCLI", () => {
   });
 
   it("rejects unsupported agents", async () => {
+    const configLoader = makeConfigLoader();
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
+    const git = makeGit();
     const cli = new DefaultCLI({
       orchestrator: { runOnce: jest.fn(), runAll: jest.fn() },
+      configLoader,
+      taskTracker,
+      git,
     });
 
     await expect(cli.run({ command: "resolve", agent: "other" })).rejects.toThrow(/Unsupported/);
+  });
+
+  it("requires customAgentCmd when custom agent is requested", async () => {
+    const configLoader = makeConfigLoader();
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
+    const git = makeGit();
+    const cli = new DefaultCLI({
+      orchestrator: { runOnce: jest.fn(), runAll: jest.fn() },
+      configLoader,
+      taskTracker,
+      git,
+    });
+
+    await expect(cli.run({ command: "resolve", agent: "custom" })).rejects.toThrow(
+      /customAgentCmd/
+    );
+  });
+
+  it("uses a custom agent when configured as default", async () => {
+    const runOnce = jest.fn().mockResolvedValue(undefined);
+    const runAll = jest.fn();
+    const configLoader = makeConfigLoader();
+    configLoader.load.mockReturnValue({
+      ...baseConfig,
+      agent: "custom",
+      defaultAgent: "custom",
+      customAgentCmd: "/bin/echo",
+    });
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
+    const git = makeGit();
+    let agentName: string | undefined;
+    const orchestratorFactory = {
+      create: jest.fn((deps) => {
+        agentName = deps.agent.name;
+        return { runOnce, runAll };
+      }),
+    };
+    const cli = new DefaultCLI({ configLoader, taskTracker, orchestratorFactory, git });
+
+    await cli.run({ command: "resolve" });
+
+    expect(agentName).toBe("custom");
+    expect(runOnce).toHaveBeenCalled();
   });
 
   it("prints usage and exits when help is requested", async () => {

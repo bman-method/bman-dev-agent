@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
-import { CodexAgent } from "./codeAgent";
+import { CLIAgent } from "./codeAgent";
 import { DefaultCommitMessageFormatter } from "./commitMessageFormatter";
 import { DefaultConfigLoader } from "./configLoader";
 import { DefaultGitOps } from "./gitOps";
@@ -22,6 +22,8 @@ import {
   OrchestratorFactory,
   TaskTrackerDocument,
   TaskTracker,
+  AgentName,
+  CodeAgent,
 } from "./types";
 
 interface CLIOverrides {
@@ -69,12 +71,8 @@ export class DefaultCLI implements CLI {
       throw new UsageError(`Unknown command "${options.command}".`);
     }
 
-    const agentName = (options.agent ?? "codex").toLowerCase();
-    if (agentName !== "codex") {
-      throw new UsageError(`Unsupported agent "${options.agent}". Only "codex" is supported.`);
-    }
-
-    const { configLoader, taskTracker, document } = this.loadTaskContext(branchName);
+    const { configLoader, config, taskTracker, document } = this.loadTaskContext(branchName);
+    const agentName = this.resolveAgent(options.agent, config);
 
     const hasBlockedTask = document.tasks.some((task) => task.status === "blocked");
     if (hasBlockedTask) {
@@ -91,7 +89,7 @@ export class DefaultCLI implements CLI {
 
     const orchestrator =
       this.overrides.orchestrator ??
-      this.createOrchestrator(branchName, configLoader, taskTracker, git);
+      this.createOrchestrator(branchName, configLoader, taskTracker, git, agentName, config);
 
     if (options.all) {
       await orchestrator.runAll();
@@ -116,7 +114,9 @@ export class DefaultCLI implements CLI {
     branchName: string,
     configLoader: ConfigLoader,
     taskTracker: TaskTracker,
-    git: GitOps
+    git: GitOps,
+    agentName: AgentName,
+    config: Config
   ): Orchestrator {
     const resolvedConfigLoader = configLoader ?? this.overrides.configLoader ?? new DefaultConfigLoader();
     const resolvedGit = git ?? this.overrides.git ?? new DefaultGitOps(process.cwd());
@@ -124,10 +124,12 @@ export class DefaultCLI implements CLI {
       taskTracker ??
       this.overrides.taskTracker ??
       (() => {
-        const trackerConfig = resolvedConfigLoader.load(branchName);
+        const trackerConfig = config ?? resolvedConfigLoader.load(branchName);
         resolvedConfigLoader.validate(trackerConfig);
         return new DefaultTaskTracker(trackerConfig.tasksFile);
       })();
+    const resolvedConfig = config ?? resolvedConfigLoader.load(branchName);
+    resolvedConfigLoader.validate(resolvedConfig);
 
     const deps: OrchestratorDeps = {
       configLoader: resolvedConfigLoader,
@@ -136,7 +138,7 @@ export class DefaultCLI implements CLI {
       promptStrategy: new DefaultPromptStrategy(),
       runContextFactory: new DefaultRunContextFactory(),
       contract: DefaultOutputContract,
-      agent: new CodexAgent(),
+      agent: this.createAgent(agentName, resolvedConfig),
       resultParser: new DefaultResultParser(),
       commitFormatter: new DefaultCommitMessageFormatter(),
       git: resolvedGit,
@@ -144,6 +146,50 @@ export class DefaultCLI implements CLI {
 
     const factory = this.overrides.orchestratorFactory ?? new DefaultOrchestratorFactory();
     return factory.create(deps);
+  }
+
+  private resolveAgent(agentOption: string | undefined, config: Config): AgentName {
+    const requested = this.normalizeAgent(agentOption);
+    if (requested) {
+      if (requested === "custom" && !config.customAgentCmd) {
+        throw new UsageError(
+          'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": "<command>" to .bman/config.json.'
+        );
+      }
+      return requested;
+    }
+
+    const fallback = config.defaultAgent ?? config.agent;
+    if (fallback === "custom" && !config.customAgentCmd) {
+      throw new UsageError(
+        'defaultAgent is "custom" but customAgentCmd is missing. Add "customAgentCmd": "<command>" to .bman/config.json.'
+      );
+    }
+    return fallback;
+  }
+
+  private normalizeAgent(agent: string | undefined): AgentName | null {
+    if (!agent) {
+      return null;
+    }
+    const lowered = agent.toLowerCase();
+    if (lowered === "codex" || lowered === "custom") {
+      return lowered;
+    }
+    throw new UsageError(`Unsupported agent "${agent}". Only "codex" or "custom" are supported.`);
+  }
+
+  private createAgent(agentName: AgentName, config: Config): CodeAgent {
+    if (agentName === "custom") {
+      const command = config.customAgentCmd?.trim();
+      if (!command) {
+        throw new UsageError(
+          'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": "<command>" to .bman/config.json.'
+        );
+      }
+      return new CLIAgent({ name: "custom", command, defaultArgs: [] });
+    }
+    return new CLIAgent({ name: "codex" });
   }
 
   private handleAddTask(branchName: string, options: CLIOptions): void {
@@ -289,10 +335,10 @@ Usage: bman-dev-agent <command> [options]
 
 Commands:
   resolve [options]
-                  Resolve tasks using the Codex agent
+                  Resolve tasks using the configured agent
     --all, -a     Run all tasks sequentially
     --agent <name>
-                  Agent name (only "codex" supported; default: codex)
+                  Agent name ("codex" or "custom"; default from config)
     --push        Push commits after each task (opt-in)
 
   add-task <description>

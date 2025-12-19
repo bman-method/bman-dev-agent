@@ -1,7 +1,11 @@
 import type { AgentOutput, AgentOutputStatus } from "./agentOutputSchema";
 
+export type AgentName = "codex" | "custom";
+
 export interface Config {
-  agent: string;
+  agent: AgentName;
+  defaultAgent?: AgentName;
+  customAgentCmd?: string;
   tasksFile: string;
   outputDir: string;
 }

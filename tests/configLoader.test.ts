@@ -23,6 +23,7 @@ describe("DefaultConfigLoader", () => {
       const config = loader.load("main");
 
       expect(config.agent).toBe("codex");
+      expect(config.defaultAgent).toBe("codex");
       expect(config.tasksFile).toBe(path.join(dir, ".bman", "tracker", "main", "tasks.md"));
       expect(config.outputDir).toBe(path.join(dir, ".bman", "output"));
 
@@ -66,26 +67,48 @@ describe("DefaultConfigLoader", () => {
       const config = loader.load("main");
 
       expect(config.agent).toBe("codex");
+      expect(config.defaultAgent).toBe("codex");
       expect(config.tasksFile).toBe("custom-tasks.md");
       expect(config.outputDir).toBe(outputDir);
       expect(fs.existsSync(outputDir)).toBe(true);
     });
   });
 
-  it("validates supported agent and required fields", () => {
+  it("validates supported agent, custom command, and required fields", () => {
     const loader = new DefaultConfigLoader("unused");
 
     expect(() =>
-      loader.validate({ agent: "other", tasksFile: "tasks.md", outputDir: ".out" } as Config)
+      loader.validate({
+        agent: "other" as any,
+        tasksFile: "tasks.md",
+        outputDir: ".out",
+        defaultAgent: "codex",
+      } as Config)
     ).toThrow(/Unsupported agent/);
 
     expect(() =>
-      loader.validate({ agent: "codex", tasksFile: "", outputDir: ".out" } as Config)
+      loader.validate({
+        agent: "codex",
+        tasksFile: "",
+        outputDir: ".out",
+      } as Config)
     ).toThrow(/tasksFile/);
 
     expect(() =>
-      loader.validate({ agent: "codex", tasksFile: "tasks.md", outputDir: "" } as Config)
+      loader.validate({
+        agent: "codex",
+        tasksFile: "tasks.md",
+        outputDir: "",
+      } as Config)
     ).toThrow(/outputDir/);
+
+    expect(() =>
+      loader.validate({
+        agent: "custom",
+        tasksFile: "tasks.md",
+        outputDir: ".out",
+      } as Config)
+    ).toThrow(/customAgentCmd/);
   });
 
   it("requires a branch name when tasksFile is not provided", () => {
@@ -94,6 +117,30 @@ describe("DefaultConfigLoader", () => {
       const loader = new DefaultConfigLoader(configPath);
 
       expect(() => loader.load("   ")).toThrow(/Branch name is required/);
+    });
+  });
+
+  it("loads custom default agent and command from config", () => {
+    withTempDir((dir) => {
+      const configPath = path.join(dir, ".bman", "config.json");
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(
+        configPath,
+        JSON.stringify({
+          defaultAgent: "custom",
+          customAgentCmd: "/bin/echo",
+          tasksFile: "tasks.md",
+          outputDir: ".out",
+        })
+      );
+
+      const loader = new DefaultConfigLoader(configPath);
+      const config = loader.load("main");
+
+      expect(config.agent).toBe("custom");
+      expect(config.defaultAgent).toBe("custom");
+      expect(config.customAgentCmd).toBe("/bin/echo");
+      loader.validate(config);
     });
   });
 });

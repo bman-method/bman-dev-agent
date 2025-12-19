@@ -27,12 +27,12 @@ function buildCtx(
   };
 }
 
-function buildLogPath(ctx: RunContext): string {
+function buildLogPath(ctx: RunContext, agentName = "codex"): string {
   const outputRoot = path.dirname(path.dirname(ctx.outputPath));
-  return path.join(outputRoot, "logs", `codex-${ctx.taskId}-${ctx.timestamp}.log`);
+  return path.join(outputRoot, "logs", `${agentName}-${ctx.taskId}-${ctx.timestamp}.log`);
 }
 
-describe("CodexAgent", () => {
+describe("CLIAgent", () => {
   it("uses default codex exec flags when args are not provided and writes logs to a file", async () => {
     await withTempDir(async (dir) => {
       const outputPath = path.join(dir, "TASK-1", "result.json");
@@ -91,9 +91,9 @@ describe("CodexAgent", () => {
         spawn: spawnMock,
       }));
 
-      const { CodexAgent } = await import("../src/codeAgent");
+      const { CLIAgent } = await import("../src/codeAgent");
 
-      const agent = new CodexAgent({
+      const agent = new CLIAgent({
         command: "codex", // value irrelevant due to mock
       });
 
@@ -107,10 +107,10 @@ describe("CodexAgent", () => {
         expect(saved.received).toBe(prompt);
         expect(saved.args).toEqual(expectedArgs);
 
-        const logPath = buildLogPath(ctx);
-        const logContent = fs.readFileSync(logPath, "utf8");
-        expect(logContent).toContain("stdout log line");
-        expect(logContent).toContain("stderr log line");
+      const logPath = buildLogPath(ctx);
+      const logContent = fs.readFileSync(logPath, "utf8");
+      expect(logContent).toContain("stdout log line");
+      expect(logContent).toContain("stderr log line");
         expect(consoleSpy).toHaveBeenCalledWith(
           expect.stringContaining(`writing logs to ${logPath}`)
         );
@@ -124,7 +124,7 @@ describe("CodexAgent", () => {
 
   it("sends prompt to the command and requires output file", async () => {
     await withTempDir(async (dir) => {
-      const { CodexAgent } = await import("../src/codeAgent");
+      const { CLIAgent } = await import("../src/codeAgent");
       const outputPath = path.join(dir, "TASK-1", "result.json");
       const prompt = "Do the thing";
 
@@ -139,7 +139,8 @@ describe("CodexAgent", () => {
         process.stderr.write("log from stderr");
       `;
 
-      const agent = new CodexAgent({
+      const agent = new CLIAgent({
+        name: "custom",
         command: process.execPath,
         args: ["-e", script],
       });
@@ -150,7 +151,7 @@ describe("CodexAgent", () => {
       const saved = JSON.parse(fs.readFileSync(outputPath, "utf8")) as { received: string };
       expect(saved.received).toBe(prompt);
 
-      const logPath = buildLogPath(ctx);
+      const logPath = buildLogPath(ctx, "custom");
       const content = fs.readFileSync(logPath, "utf8");
       expect(content).toContain("log from stdout");
       expect(content).toContain("log from stderr");
@@ -159,10 +160,10 @@ describe("CodexAgent", () => {
 
   it("throws when the command exits with non-zero code", async () => {
     await withTempDir(async (dir) => {
-      const { CodexAgent } = await import("../src/codeAgent");
+      const { CLIAgent } = await import("../src/codeAgent");
       const outputPath = path.join(dir, "TASK-1", "result.json");
 
-      const agent = new CodexAgent({
+      const agent = new CLIAgent({
         command: process.execPath,
         args: ["-e", "process.exit(3)"],
       });
@@ -173,10 +174,10 @@ describe("CodexAgent", () => {
 
   it("throws when the command does not write the output file", async () => {
     await withTempDir(async (dir) => {
-      const { CodexAgent } = await import("../src/codeAgent");
+      const { CLIAgent } = await import("../src/codeAgent");
       const outputPath = path.join(dir, "TASK-1", "result.json");
 
-      const agent = new CodexAgent({
+      const agent = new CLIAgent({
         command: process.execPath,
         args: ["-e", "process.exit(0)"],
       });

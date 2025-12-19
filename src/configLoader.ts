@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Config, ConfigLoader } from "./types";
+import { AgentName, Config, ConfigLoader } from "./types";
 import { getDefaultTasksFilePath } from "./tasksFile";
 
 export class DefaultConfigLoader implements ConfigLoader {
@@ -18,7 +18,8 @@ export class DefaultConfigLoader implements ConfigLoader {
       throw new Error("Branch name is required to determine default tasks file path.");
     }
 
-    const agent = (fileConfig.agent ?? "codex").toLowerCase();
+    const defaultAgent = normalizeAgent(fileConfig.defaultAgent ?? fileConfig.agent ?? "codex");
+    const customAgentCmd = fileConfig.customAgentCmd;
     const tasksFile =
       fileConfig.tasksFile ?? getDefaultTasksFilePath(trimmedBranchName, configDir);
     const outputDir = fileConfig.outputDir ?? path.join(configDir, "output");
@@ -27,15 +28,24 @@ export class DefaultConfigLoader implements ConfigLoader {
     ensureDirectory(path.dirname(resolvePath(tasksFile)));
 
     return {
-      agent,
+      agent: defaultAgent,
+      defaultAgent,
+      customAgentCmd,
       tasksFile,
       outputDir,
     };
   }
 
   validate(config: Config): void {
-    if (typeof config.agent !== "string" || config.agent.toLowerCase() !== "codex") {
-      throw new Error(`Unsupported agent "${config.agent}". Only "codex" is supported.`);
+    validateAgent(config.agent, "agent");
+    if (config.defaultAgent) {
+      validateAgent(config.defaultAgent, "defaultAgent");
+    }
+    const effectiveAgent = config.defaultAgent ?? config.agent;
+    if (effectiveAgent === "custom" && !isNonEmptyString(config.customAgentCmd)) {
+      throw new Error(
+        'customAgentCmd is required when using the "custom" agent. Configure it in .bman/config.json.'
+      );
     }
 
     if (!isNonEmptyString(config.tasksFile)) {
@@ -55,6 +65,23 @@ function readConfigFile(resolvedPath: string): Partial<Config> {
 
   const content = fs.readFileSync(resolvedPath, "utf8");
   return JSON.parse(content) as Partial<Config>;
+}
+
+function normalizeAgent(agent: unknown): AgentName {
+  if (typeof agent !== "string") {
+    return "codex";
+  }
+  const lowered = agent.trim().toLowerCase();
+  if (lowered === "custom" || lowered === "codex") {
+    return lowered;
+  }
+  return lowered as AgentName;
+}
+
+function validateAgent(agent: AgentName, field: "agent" | "defaultAgent"): void {
+  if (agent !== "codex" && agent !== "custom") {
+    throw new Error(`Unsupported ${field} "${agent}". Only "codex" or "custom" are supported.`);
+  }
 }
 
 function ensureDirectory(dir: string): void {

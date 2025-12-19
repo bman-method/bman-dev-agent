@@ -2,25 +2,30 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { CodeAgent, RunContext } from "./types";
-interface CodexAgentOptions {
+interface CLIAgentOptions {
+    name?: string;
     command?: string;
     args?: string[];
+    defaultArgs?: string[];
     env?: NodeJS.ProcessEnv;
 }
-export class CodexAgent implements CodeAgent {
-    name = "codex";
-
-    constructor(private readonly options: CodexAgentOptions = {}) { }
+const DEFAULT_CODEX_ARGS = ["exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"];
+export class CLIAgent implements CodeAgent {
+    name: string;
+    constructor(private readonly options: CLIAgentOptions = {}) {
+        this.name = options.name ?? "codex";
+    }
 
     async run(prompt: string, ctx: RunContext): Promise<void> {
         ensureDirectoryFor(ctx.outputPath);
-        const logPath = buildLogPath(ctx);
+        const logPath = buildLogPath(ctx, this.name);
         ensureDirectoryFor(logPath);
-        console.log(`CodexAgent: running codex and writing logs to ${logPath}`);
+        console.log(`${this.name}: running ${this.options.command ?? "codex"} and writing logs to ${logPath}`);
         const command = this.options.command ?? "codex";
         // Default to non-interactive mode, reading prompt from stdin.
         const args = this.options.args ??
-            ["exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"];
+            this.options.defaultArgs ??
+            DEFAULT_CODEX_ARGS;
         const env = { ...process.env, ...this.options.env, OUTPUT_PATH: ctx.outputPath };
         await new Promise<void>((resolve, reject) => {
             let settled = false;
@@ -52,11 +57,11 @@ export class CodexAgent implements CodeAgent {
             child.on("close", (code, signal) => {
                 logStream.end(() => {
                     if (code !== 0) {
-                        finish(new Error(`Codex agent exited with code ${code ?? "null"}${signal ? ` (signal ${signal})` : ""}`));
+                        finish(new Error(`${this.name} agent exited with code ${code ?? "null"}${signal ? ` (signal ${signal})` : ""}`));
                         return;
                     }
                     if (!fs.existsSync(ctx.outputPath)) {
-                        finish(new Error(`Codex agent did not write output to ${ctx.outputPath}`));
+                        finish(new Error(`${this.name} agent did not write output to ${ctx.outputPath}`));
                         return;
                     }
                     finish();
@@ -71,7 +76,7 @@ function ensureDirectoryFor(filePath: string): void {
     fs.mkdirSync(dir, { recursive: true });
 }
 
-function buildLogPath(ctx: RunContext): string {
-  const outputRoot = path.dirname(path.dirname(ctx.outputPath));
-  return path.join(outputRoot, "logs", `codex-${ctx.taskId}-${ctx.timestamp}.log`);
+function buildLogPath(ctx: RunContext, agentName: string): string {
+    const outputRoot = path.dirname(path.dirname(ctx.outputPath));
+    return path.join(outputRoot, "logs", `${agentName}-${ctx.taskId}-${ctx.timestamp}.log`);
 }
