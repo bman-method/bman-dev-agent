@@ -181,8 +181,13 @@ export class DefaultCLI implements CLI {
 
   private createAgent(agentName: AgentName, config: Config): CodeAgent {
     if (agentName === "custom") {
-      const { command, args } = parseCustomAgentCommand(config.customAgentCmd);
-      return new CLIAgent({ name: "custom", command, args, defaultArgs: [] });
+      const command = config.customAgentCmd?.trim();
+      if (!command) {
+        throw new UsageError(
+          'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": "<command>" to .bman/config.json.'
+        );
+      }
+      return new CLIAgent({ name: "custom", command, defaultArgs: [] });
     }
     return new CLIAgent({ name: "codex" });
   }
@@ -278,27 +283,6 @@ export function parseArgs(argv: string[]): CLIOptions {
 
   options.command = command;
   return options;
-}
-
-export function parseCustomAgentCommand(rawCommand: string | undefined): {
-  command: string;
-  args: string[];
-} {
-  const value = rawCommand?.trim();
-  if (!value) {
-    throw new UsageError(
-      'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": "<command>" to .bman/config.json.'
-    );
-  }
-
-  const [command, ...args] = value.split(/\s+/).filter(Boolean);
-  if (!command) {
-    throw new UsageError(
-      'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": "<command>" to .bman/config.json.'
-    );
-  }
-
-  return { command, args };
 }
 
 function parseCommand(value: string): CLICommand {
