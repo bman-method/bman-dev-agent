@@ -1,12 +1,27 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { DefaultCLI, UsageError, main, parseArgs } from "../src/cli";
+import { DefaultCLI, UsageError, main, parseArgs, parseCustomAgentCommand } from "../src/cli";
 import { DefaultConfigLoader } from "../src/configLoader";
 import { DefaultGitOps } from "../src/gitOps";
 import { parseDocument } from "../src/taskTracker";
 import { Task } from "../src/types";
 import { getTrackerFolderName } from "../src/tasksFile";
+
+type MockedAgent = { name: string; options: any; run: jest.Mock };
+const capturedAgents: MockedAgent[] = [];
+
+jest.mock("../src/codeAgent", () => {
+  return {
+    CLIAgent: jest.fn((options: any = {}) => {
+      const agent = { name: options.name ?? "codex", options, run: jest.fn() };
+      capturedAgents.push(agent);
+      return agent;
+    }),
+  };
+});
+
+import { CLIAgent } from "../src/codeAgent";
 
 const baseConfig = {
   agent: "codex" as const,
@@ -44,6 +59,24 @@ function makeTaskTracker(tasks: Task[]) {
     addTask: jest.fn(),
   };
 }
+
+beforeEach(() => {
+  capturedAgents.length = 0;
+  (CLIAgent as unknown as jest.Mock).mockClear();
+});
+
+describe("parseCustomAgentCommand", () => {
+  it("splits the command into executable and arguments", () => {
+    expect(parseCustomAgentCommand("my-agent arg1 arg2")).toEqual({
+      command: "my-agent",
+      args: ["arg1", "arg2"],
+    });
+  });
+
+  it("throws when no command is provided", () => {
+    expect(() => parseCustomAgentCommand("   ")).toThrow(/customAgentCmd/);
+  });
+});
 
 describe("parseArgs", () => {
   it("requires a command when not requesting help", () => {
@@ -201,6 +234,36 @@ describe("DefaultCLI", () => {
 
     expect(agentName).toBe("custom");
     expect(runOnce).toHaveBeenCalled();
+  });
+
+  it("passes custom agent command arguments to the CLIAgent", async () => {
+    const runOnce = jest.fn().mockResolvedValue(undefined);
+    const runAll = jest.fn();
+    const configLoader = makeConfigLoader();
+    configLoader.load.mockReturnValue({
+      ...baseConfig,
+      agent: "custom",
+      defaultAgent: "custom",
+      customAgentCmd: "my-agent --flag value",
+    });
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
+    const git = makeGit();
+    const orchestratorFactory = {
+      create: jest.fn(() => ({ runOnce, runAll })),
+    };
+    const cli = new DefaultCLI({ configLoader, taskTracker, orchestratorFactory, git });
+
+    await cli.run({ command: "resolve" });
+
+    expect(capturedAgents[0]?.options).toEqual(
+      expect.objectContaining({
+        name: "custom",
+        command: "my-agent",
+        args: ["--flag", "value"],
+      })
+    );
   });
 
   it("prints usage and exits when help is requested", async () => {
