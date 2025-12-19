@@ -1,3 +1,4 @@
+import path from "node:path";
 import { OutputContract, PromptInput, PromptStrategy, Task } from "./types";
 const section = (title: string, body: string): string => {
     return `${title}:\n${body.trim()}`;
@@ -29,6 +30,7 @@ function formatCompletedTasks(tasks: Task[], currentId: string): string {
 export class DefaultPromptStrategy implements PromptStrategy {
     build(input: PromptInput): string {
         const { task, runContext, contract, trackerDocument } = input;
+        const outputPath = toCwdRelative(runContext.outputPath);
         const instructions = [
             "You are executing exactly one task.",
             "Write a single JSON object to the output file path provided below.",
@@ -39,10 +41,15 @@ export class DefaultPromptStrategy implements PromptStrategy {
             section("Task", formatTask(task)),
             section("Tasks file prelude", trackerDocument.preludeText || "None."),
             section("Completed tasks", formatCompletedTasks(trackerDocument.tasks, task.id)),
-            section("Output file", runContext.outputPath),
+            section("Output file", outputPath),
             section("Output contract", formatContract(contract)),
             section("Instructions", instructions),
         ];
         return parts.join("\n\n").trimEnd();
     }
+}
+
+function toCwdRelative(outputPath: string): string {
+    const absolutePath = path.isAbsolute(outputPath) ? outputPath : path.resolve(outputPath);
+    return path.relative(process.cwd(), absolutePath) || ".";
 }

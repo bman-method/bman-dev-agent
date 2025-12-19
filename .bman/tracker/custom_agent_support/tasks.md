@@ -14,5 +14,5 @@ This will set what is the default agent to use when no --agent is specified to t
 ```
 In this case, you should use "my-agent" as the command and provide it arg1..3 as arguments. It makes sense to suppot this because users may need to set custom permissions and various flags to their custom agents.
 
-- [ ] TASK-3: Make sure outputPath in the prompt (see promptStrategy.ts) is relative to the folder from which the cli runs (the root source folder)
+- [x] TASK-3: Make sure outputPath in the prompt (see promptStrategy.ts) is relative to the folder from which the cli runs (the root source folder)
 Some coding agents will refuse to write the file if they'll get a full path.
