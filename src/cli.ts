@@ -153,7 +153,7 @@ export class DefaultCLI implements CLI {
     if (requested) {
       if (requested === "custom" && !config.customAgentCmd) {
         throw new UsageError(
-          'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": "<command>" to .bman/config.json.'
+          'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": ["<command>"] to .bman/config.json.'
         );
       }
       return requested;
@@ -162,7 +162,7 @@ export class DefaultCLI implements CLI {
     const fallback = config.defaultAgent ?? config.agent;
     if (fallback === "custom" && !config.customAgentCmd) {
       throw new UsageError(
-        'defaultAgent is "custom" but customAgentCmd is missing. Add "customAgentCmd": "<command>" to .bman/config.json.'
+        'defaultAgent is "custom" but customAgentCmd is missing. Add "customAgentCmd": ["<command>"] to .bman/config.json.'
       );
     }
     return fallback;
@@ -181,13 +181,14 @@ export class DefaultCLI implements CLI {
 
   private createAgent(agentName: AgentName, config: Config): CodeAgent {
     if (agentName === "custom") {
-      const command = config.customAgentCmd?.trim();
+      const parts = (config.customAgentCmd ?? []).map((part) => part.trim());
+      const [command, ...args] = parts;
       if (!command) {
         throw new UsageError(
-          'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": "<command>" to .bman/config.json.'
+          'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": ["<command>"] to .bman/config.json.'
         );
       }
-      return new CLIAgent({ name: "custom", command, defaultArgs: [] });
+      return new CLIAgent({ name: "custom", command, args });
     }
     return new CLIAgent({ name: "codex" });
   }

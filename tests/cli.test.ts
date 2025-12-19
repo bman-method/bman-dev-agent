@@ -182,7 +182,7 @@ describe("DefaultCLI", () => {
       ...baseConfig,
       agent: "custom",
       defaultAgent: "custom",
-      customAgentCmd: "/bin/echo",
+      customAgentCmd: ["/bin/echo", "--flag"],
     });
     const taskTracker = makeTaskTracker([
       { id: "T1", title: "Task", description: "", status: "open" },

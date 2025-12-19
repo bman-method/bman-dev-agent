@@ -109,6 +109,15 @@ describe("DefaultConfigLoader", () => {
         outputDir: ".out",
       } as Config)
     ).toThrow(/customAgentCmd/);
+
+    expect(() =>
+      loader.validate({
+        agent: "custom",
+        tasksFile: "tasks.md",
+        outputDir: ".out",
+        customAgentCmd: [],
+      } as Config)
+    ).toThrow(/customAgentCmd/);
   });
 
   it("requires a branch name when tasksFile is not provided", () => {
@@ -128,7 +137,7 @@ describe("DefaultConfigLoader", () => {
         configPath,
         JSON.stringify({
           defaultAgent: "custom",
-          customAgentCmd: "/bin/echo",
+          customAgentCmd: ["/bin/echo", "--flag"],
           tasksFile: "tasks.md",
           outputDir: ".out",
         })
@@ -139,7 +148,7 @@ describe("DefaultConfigLoader", () => {
 
       expect(config.agent).toBe("custom");
       expect(config.defaultAgent).toBe("custom");
-      expect(config.customAgentCmd).toBe("/bin/echo");
+      expect(config.customAgentCmd).toEqual(["/bin/echo", "--flag"]);
       loader.validate(config);
     });
   });

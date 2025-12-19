@@ -5,7 +5,7 @@ export type AgentName = "codex" | "custom";
 export interface Config {
   agent: AgentName;
   defaultAgent?: AgentName;
-  customAgentCmd?: string;
+  customAgentCmd?: string[];
   tasksFile: string;
   outputDir: string;
 }

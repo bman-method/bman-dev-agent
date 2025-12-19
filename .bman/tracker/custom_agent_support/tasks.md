@@ -5,11 +5,11 @@
 This will set what is the default agent to use when no --agent is specified to the CLI (currently its hard coded to codex)
 * The technical part of this task probably makes sense to rename the class CodexAgent to CLIAgent (or similar) and inject the command to it.
 
-- [ ] TASK-2: Allow command line arguments for custom agent
+- [x] TASK-2: Allow command line arguments for custom agent
 * Change the config property customAgentCmd from string to array to allow multiple args for the custom agent command (example):
 ```
 {
-  "customAgentCmd": ["my-agent","arg1","arg2","arg3"]
+"customAgentCmd": ["my-agent","arg1","arg2","arg3"]
 }
 ```
 In this case, you should use "my-agent" as the command and provide it arg1..3 as arguments. It makes sense to suppot this because users may need to set custom permissions and various flags to their custom agents.

@@ -42,9 +42,9 @@ export class DefaultConfigLoader implements ConfigLoader {
       validateAgent(config.defaultAgent, "defaultAgent");
     }
     const effectiveAgent = config.defaultAgent ?? config.agent;
-    if (effectiveAgent === "custom" && !isNonEmptyString(config.customAgentCmd)) {
+    if (effectiveAgent === "custom" && !isValidCustomAgentCmd(config.customAgentCmd)) {
       throw new Error(
-        'customAgentCmd is required when using the "custom" agent. Configure it in .bman/config.json.'
+        'customAgentCmd is required when using the "custom" agent. Configure it as a non-empty array in .bman/config.json.'
       );
     }
 
@@ -90,6 +90,14 @@ function ensureDirectory(dir: string): void {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function isNonEmptyStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.length > 0 && value.every((item) => isNonEmptyString(item));
+}
+
+function isValidCustomAgentCmd(value: unknown): value is string[] {
+  return isNonEmptyStringArray(value);
 }
 
 function resolveDir(dir: string): string {
