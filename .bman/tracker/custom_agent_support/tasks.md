@@ -61,5 +61,5 @@ Instead of the cli.ts reading config and constructing the command, move this log
 Also the default registry should be moved to the CLIAgent class.
 Also fix the usage text to specify the built in agent names (claude / gemini / codex)
 
-- [ ] TASK-6: Update readme.md with the agent config changes made in this branch.
+- [x] TASK-6: Update readme.md with the agent config changes made in this branch.
 The update should include an example of how to configure custom agent entry.

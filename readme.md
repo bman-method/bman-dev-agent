@@ -102,6 +102,34 @@ No credentials are written to disk or committed to Git.
 
 ---
 
+## Configuration
+
+Configuration lives in `.bman/config.json`. The `agent` section now uses a `default` + `registry` structure, and `tasksFile` / `outputDir` can be overridden as needed.
+
+Example with a custom agent entry:
+
+```json
+{
+  "agent": {
+    "default": "my-agent",
+    "registry": {
+      "my-agent": { "cmd": ["my-agent", "run", "--format", "json"] },
+      "codex": { "cmd": ["codex", "exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"] }
+    }
+  },
+  "tasksFile": ".bman/tracker/main/tasks.md",
+  "outputDir": ".bman/output"
+}
+```
+
+Notes:
+
+* `agent.registry.<name>.cmd` is an array of command + args.
+* `agent.default` must exist in the registry.
+* You can pick a registry entry at runtime via `bman-dev-agent resolve --agent <name>`.
+
+---
+
 ## Supported dev agents
 
 `bman-dev-agent` is designed to be **agent-agnostic**. The orchestration, safety guarantees, and commit discipline are independent of the underlying LLM or coding tool.
