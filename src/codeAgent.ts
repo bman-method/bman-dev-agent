@@ -105,21 +105,25 @@ function resolveCommand(options: CLIAgentOptions): { name: string; command: stri
         return { name, command: options.command, args: options.args ?? fallbackArgs };
     }
 
-    const registry = options.agentConfig?.registry;
-    if (registry) {
-        const entry = registry[name];
-        const parts = (entry?.cmd ?? []).map((part) => part.trim()).filter((part) => part.length > 0);
-        const [command, ...args] = parts;
-        if (!command) {
-            throw new Error(
-                `Agent "${name}" is missing a command. Configure agent.registry.${name}.cmd in .bman/config.json.`
-            );
-        }
-        return { name, command, args };
+    const registry = mergeRegistry(options.agentConfig?.registry);
+    const entry = registry[name];
+    const parts = (entry?.cmd ?? []).map((part) => part.trim()).filter((part) => part.length > 0);
+    const [command, ...args] = parts;
+    if (!command) {
+        throw new Error(
+            `Agent "${name}" is missing a command. Configure agent.registry.${name}.cmd in .bman/config.json.`
+        );
     }
+    return { name, command, args };
+}
 
-    const fallbackArgs = options.defaultArgs ?? DEFAULT_CODEX_ARGS;
-    return { name, command: "codex", args: options.args ?? fallbackArgs };
+function mergeRegistry(
+    registry: Record<string, AgentRegistryEntry> | undefined
+): Record<string, AgentRegistryEntry> {
+    if (!registry || Object.keys(registry).length === 0) {
+        return { ...DEFAULT_AGENT_REGISTRY };
+    }
+    return { ...DEFAULT_AGENT_REGISTRY, ...registry };
 }
 
 function ensureDirectoryFor(filePath: string): void {

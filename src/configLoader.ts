@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { CLIAgent } from "./codeAgent";
 import { AgentConfig, AgentName, AgentRegistryEntry, Config, ConfigLoader } from "./types";
 import { getDefaultTasksFilePath } from "./tasksFile";
 
@@ -72,7 +71,7 @@ function buildAgentConfig(rawAgent: unknown): AgentConfig {
 }
 
 function buildRegistry(rawRegistry: unknown): Record<string, AgentRegistryEntry> {
-  const registry: Record<string, AgentRegistryEntry> = { ...CLIAgent.defaultRegistry() };
+  const registry: Record<string, AgentRegistryEntry> = {};
   if (!isPlainObject(rawRegistry)) {
     return registry;
   }
@@ -137,23 +136,15 @@ function validateAgentConfig(config: AgentConfig): void {
   }
 
   if (!isPlainObject(config.registry)) {
-    throw new Error("agent.registry must be a non-empty object.");
+    throw new Error("agent.registry must be an object.");
   }
 
   const keys = Object.keys(config.registry);
-  if (keys.length === 0) {
-    throw new Error("agent.registry must contain at least one agent definition.");
-  }
-
   for (const key of keys) {
     const entry = config.registry[key];
     if (!entry || !isNonEmptyStringArray(entry.cmd)) {
       throw new Error(`agent.registry.${key}.cmd must be a non-empty array of strings.`);
     }
-  }
-
-  if (!config.registry[config.default]) {
-    throw new Error(`agent.default "${config.default}" is not defined in agent.registry.`);
   }
 }
 

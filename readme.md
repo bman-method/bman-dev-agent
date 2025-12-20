@@ -104,7 +104,7 @@ No credentials are written to disk or committed to Git.
 
 ## Configuration
 
-Configuration lives in `.bman/config.json`. The `agent` section now uses a `default` + `registry` structure, and `tasksFile` / `outputDir` can be overridden as needed.
+Configuration lives in `.bman/config.json`. The `agent` section uses a `default` + `registry` structure, and `tasksFile` / `outputDir` can be overridden as needed. Registry entries extend (and can override) the built-in defaults.
 
 Example with a custom agent entry:
 
@@ -113,8 +113,7 @@ Example with a custom agent entry:
   "agent": {
     "default": "my-agent",
     "registry": {
-      "my-agent": { "cmd": ["my-agent", "run", "--format", "json"] },
-      "codex": { "cmd": ["codex", "exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"] }
+      "my-agent": { "cmd": ["my-agent", "run", "--format", "json"] }
     }
   },
   "tasksFile": ".bman/tracker/main/tasks.md",
@@ -125,7 +124,7 @@ Example with a custom agent entry:
 Notes:
 
 * `agent.registry.<name>.cmd` is an array of command + args.
-* `agent.default` must exist in the registry.
+* `agent.default` must resolve to a registry entry (built-in or defined in the config file).
 * You can pick a registry entry at runtime via `bman-dev-agent resolve --agent <name>`.
 
 ---
