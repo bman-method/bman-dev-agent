@@ -56,7 +56,7 @@ claude - the default cmd should be:
 ["claude", "--allowedTools", "Read,Write,Bash", "--output-format", "json", "-p", "--verbose"]
 ```
 
-- [ ] TASK-5: Encapsulate the command logic inside CLIAgent.
+- [x] TASK-5: Encapsulate the command logic inside CLIAgent.
 Instead of the cli.ts reading config and constructing the command, move this logic into CLIAgent class and just make the cli pass the agents config to it.
 Also the default registry should be moved to the CLIAgent class.
 Also fix the usage text to specify the built in agent names (claude / gemini / codex)

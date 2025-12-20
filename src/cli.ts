@@ -180,15 +180,7 @@ export class DefaultCLI implements CLI {
   }
 
   private createAgent(agentName: AgentName, config: Config): CodeAgent {
-    const entry = config.agent.registry[agentName];
-    const parts = (entry?.cmd ?? []).map((part) => part.trim()).filter((part) => part.length > 0);
-    const [command, ...args] = parts;
-    if (!command) {
-      throw new UsageError(
-        `Agent "${agentName}" is missing a command. Configure agent.registry.${agentName}.cmd in .bman/config.json.`
-      );
-    }
-    return new CLIAgent({ name: agentName, command, args });
+    return new CLIAgent({ name: agentName, agentConfig: config.agent });
   }
 
   private handleAddTask(branchName: string, options: CLIOptions): void {
@@ -337,7 +329,7 @@ Commands:
                   Resolve tasks using the configured agent
     --all, -a     Run all tasks sequentially
     --agent <name>
-                  Agent name from agent.registry (default from config)
+                  Agent name from agent.registry (built-ins: claude, gemini, codex)
     --push        Push commits after each task (opt-in)
 
   add-task <description>

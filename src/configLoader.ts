@@ -1,19 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { CLIAgent } from "./codeAgent";
 import { AgentConfig, AgentName, AgentRegistryEntry, Config, ConfigLoader } from "./types";
 import { getDefaultTasksFilePath } from "./tasksFile";
-
-const BUILTIN_AGENT_REGISTRY: Record<string, AgentRegistryEntry> = {
-  codex: {
-    cmd: ["codex", "exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"],
-  },
-  gemini: {
-    cmd: ["gemini", "--approval-mode", "auto_edit"],
-  },
-  claude: {
-    cmd: ["claude", "--allowedTools", "Read,Write,Bash", "--output-format", "json", "-p", "--verbose"],
-  },
-};
 
 export class DefaultConfigLoader implements ConfigLoader {
   constructor(private readonly configPath: string = path.join(".bman", "config.json")) {}
@@ -83,7 +72,7 @@ function buildAgentConfig(rawAgent: unknown): AgentConfig {
 }
 
 function buildRegistry(rawRegistry: unknown): Record<string, AgentRegistryEntry> {
-  const registry: Record<string, AgentRegistryEntry> = { ...BUILTIN_AGENT_REGISTRY };
+  const registry: Record<string, AgentRegistryEntry> = { ...CLIAgent.defaultRegistry() };
   if (!isPlainObject(rawRegistry)) {
     return registry;
   }
