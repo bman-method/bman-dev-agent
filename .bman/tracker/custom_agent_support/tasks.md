@@ -74,3 +74,10 @@ However, if the config file contains "gemini" in the agents registry - this will
 - [x] TASK-8: Update readme.md with the built in agents that we support now (claude, gemini, codex, custom command) and remove the Planned / upcoming support
 
 - [x] TASK-9: the method resolveAgent need to get out of cli.ts because it doesn't know the built in agents. In order to print agent name, the cli.ts code can get it from the CLIAgent class instance (that may expose the name)
+
+- [ ] TASK-10: when agent binary is missing, the error is not informative enough
+
+Example:
+Orchestrator: task TASK-10 failed - spawn mmm-my-agent ENOENT
+spawn mmm-my-agent ENOENT
+I'd exect something such as: "Cannot run the agent program: 'mmm-my-agent'. Please make sure that the executable is available in the path. To chose another agent you can change the default in .bman/config.json or use --agent <agent name>"
