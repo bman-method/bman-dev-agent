@@ -30,7 +30,12 @@ function buildInput(overrides: Partial<PromptInput> = {}): PromptInput {
   const base: PromptInput = {
     task,
     config: {
-      agent: "codex",
+      agent: {
+        default: "codex",
+        registry: {
+          codex: { cmd: ["codex"] },
+        },
+      },
       tasksFile: "tasks.md",
       outputDir: ".out",
     },

@@ -25,12 +25,22 @@ describe("DefaultRunContextFactory", () => {
     withTempDir((outDir) => {
       const factory = new DefaultRunContextFactory();
       const ctx1 = factory.create(task, 1, {
-        agent: "codex",
+        agent: {
+          default: "codex",
+          registry: {
+            codex: { cmd: ["codex"] },
+          },
+        },
         tasksFile: "tasks.md",
         outputDir: outDir,
       });
       const ctx2 = factory.create(task, 2, {
-        agent: "codex",
+        agent: {
+          default: "codex",
+          registry: {
+            codex: { cmd: ["codex"] },
+          },
+        },
         tasksFile: "tasks.md",
         outputDir: outDir,
       });

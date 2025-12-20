@@ -17,27 +17,27 @@ In this case, you should use "my-agent" as the command and provide it arg1..3 as
 - [x] TASK-3: Make sure outputPath in the prompt (see promptStrategy.ts) is relative to the folder from which the cli runs (the root source folder)
 Some coding agents will refuse to write the file if they'll get a full path.
 
-- [ ] TASK-4: I'd like to change the config structure as follows:
+- [x] TASK-4: I'd like to change the config structure as follows:
 Instead of the current
 ```
 {
- "customAgentCmd": ["gemini", "-m", "gemini-2.5-flash-lite", "--approval-mode", "auto_edit"],
- "defaultAgent": "custom"
+"customAgentCmd": ["gemini", "-m", "gemini-2.5-flash-lite", "--approval-mode", "auto_edit"],
+"defaultAgent": "custom"
 }
 ```
 
 I want it to be like this:
 ```
 {
-  "agent": {
-    "default": "gemini-lite",
-    "registry": {
-      "gemini-lite": {
-        "cmd": ["gemini","-m", "gemini-2.5-flash-lite", "--approval-mode", "auto_edit"],
-      },
-      "claude": { "cmd": ["claude"] }
-    }
-  }
+"agent": {
+"default": "gemini-lite",
+"registry": {
+"gemini-lite": {
+"cmd": ["gemini","-m", "gemini-2.5-flash-lite", "--approval-mode", "auto_edit"],
+},
+"claude": { "cmd": ["claude"] }
+}
+}
 }
 
 ```

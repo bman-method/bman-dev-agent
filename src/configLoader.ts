@@ -1,7 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
-import { AgentName, Config, ConfigLoader } from "./types";
+import { AgentConfig, AgentName, AgentRegistryEntry, Config, ConfigLoader } from "./types";
 import { getDefaultTasksFilePath } from "./tasksFile";
+
+const BUILTIN_AGENT_REGISTRY: Record<string, AgentRegistryEntry> = {
+  codex: {
+    cmd: ["codex", "exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"],
+  },
+  gemini: {
+    cmd: ["gemini", "--approval-mode", "auto_edit"],
+  },
+  claude: {
+    cmd: ["claude", "--allowedTools", "Read,Write,Bash", "--output-format", "json", "-p", "--verbose"],
+  },
+};
 
 export class DefaultConfigLoader implements ConfigLoader {
   constructor(private readonly configPath: string = path.join(".bman", "config.json")) {}
@@ -18,8 +30,7 @@ export class DefaultConfigLoader implements ConfigLoader {
       throw new Error("Branch name is required to determine default tasks file path.");
     }
 
-    const defaultAgent = normalizeAgent(fileConfig.defaultAgent ?? fileConfig.agent ?? "codex");
-    const customAgentCmd = fileConfig.customAgentCmd;
+    const agentConfig = buildAgentConfig(fileConfig.agent);
     const tasksFile =
       fileConfig.tasksFile ?? getDefaultTasksFilePath(trimmedBranchName, configDir);
     const outputDir = fileConfig.outputDir ?? path.join(configDir, "output");
@@ -28,25 +39,14 @@ export class DefaultConfigLoader implements ConfigLoader {
     ensureDirectory(path.dirname(resolvePath(tasksFile)));
 
     return {
-      agent: defaultAgent,
-      defaultAgent,
-      customAgentCmd,
+      agent: agentConfig,
       tasksFile,
       outputDir,
     };
   }
 
   validate(config: Config): void {
-    validateAgent(config.agent, "agent");
-    if (config.defaultAgent) {
-      validateAgent(config.defaultAgent, "defaultAgent");
-    }
-    const effectiveAgent = config.defaultAgent ?? config.agent;
-    if (effectiveAgent === "custom" && !isValidCustomAgentCmd(config.customAgentCmd)) {
-      throw new Error(
-        'customAgentCmd is required when using the "custom" agent. Configure it as a non-empty array in .bman/config.json.'
-      );
-    }
+    validateAgentConfig(config.agent);
 
     if (!isNonEmptyString(config.tasksFile)) {
       throw new Error("tasksFile must be a non-empty string.");
@@ -58,34 +58,61 @@ export class DefaultConfigLoader implements ConfigLoader {
   }
 }
 
-function readConfigFile(resolvedPath: string): Partial<Config> {
+type FileConfig = Partial<Omit<Config, "agent">> & {
+  agent?: unknown;
+};
+
+function readConfigFile(resolvedPath: string): FileConfig {
   if (!fs.existsSync(resolvedPath)) {
     return {};
   }
 
   const content = fs.readFileSync(resolvedPath, "utf8");
-  return JSON.parse(content) as Partial<Config>;
+  return JSON.parse(content) as FileConfig;
 }
 
-function normalizeAgent(agent: unknown): AgentName {
-  if (typeof agent !== "string") {
-    return "codex";
-  }
-  const lowered = agent.trim().toLowerCase();
-  if (lowered === "custom" || lowered === "codex") {
-    return lowered;
-  }
-  return lowered as AgentName;
+function buildAgentConfig(rawAgent: unknown): AgentConfig {
+  const agentObject = isPlainObject(rawAgent) ? (rawAgent as Record<string, unknown>) : {};
+  const defaultAgent = normalizeAgentName(agentObject.default);
+  const registry = buildRegistry(agentObject.registry);
+
+  return {
+    default: defaultAgent,
+    registry,
+  };
 }
 
-function validateAgent(agent: AgentName, field: "agent" | "defaultAgent"): void {
-  if (agent !== "codex" && agent !== "custom") {
-    throw new Error(`Unsupported ${field} "${agent}". Only "codex" or "custom" are supported.`);
+function buildRegistry(rawRegistry: unknown): Record<string, AgentRegistryEntry> {
+  const registry: Record<string, AgentRegistryEntry> = { ...BUILTIN_AGENT_REGISTRY };
+  if (!isPlainObject(rawRegistry)) {
+    return registry;
   }
+  for (const [rawKey, value] of Object.entries(rawRegistry)) {
+    const key = normalizeRegistryKey(rawKey);
+    if (!key) {
+      continue;
+    }
+    const entry = isPlainObject(value) ? (value as Record<string, unknown>) : {};
+    const cmd = normalizeCmd(entry.cmd);
+    registry[key] = { cmd: cmd ?? [] };
+  }
+  return registry;
 }
 
 function ensureDirectory(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
+}
+
+function normalizeAgentName(agent: unknown): AgentName {
+  if (typeof agent !== "string") {
+    return "codex";
+  }
+  const normalized = agent.trim().toLowerCase();
+  return normalized || "codex";
+}
+
+function normalizeRegistryKey(key: string): string {
+  return key.trim().toLowerCase();
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -96,8 +123,15 @@ function isNonEmptyStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.length > 0 && value.every((item) => isNonEmptyString(item));
 }
 
-function isValidCustomAgentCmd(value: unknown): value is string[] {
-  return isNonEmptyStringArray(value);
+function normalizeCmd(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const trimmed = value.map((item) => (typeof item === "string" ? item.trim() : ""));
+  if (!isNonEmptyStringArray(trimmed)) {
+    return null;
+  }
+  return trimmed;
 }
 
 function resolveDir(dir: string): string {
@@ -106,4 +140,34 @@ function resolveDir(dir: string): string {
 
 function resolvePath(filePath: string): string {
   return path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+}
+
+function validateAgentConfig(config: AgentConfig): void {
+  if (!isNonEmptyString(config.default)) {
+    throw new Error("agent.default must be a non-empty string.");
+  }
+
+  if (!isPlainObject(config.registry)) {
+    throw new Error("agent.registry must be a non-empty object.");
+  }
+
+  const keys = Object.keys(config.registry);
+  if (keys.length === 0) {
+    throw new Error("agent.registry must contain at least one agent definition.");
+  }
+
+  for (const key of keys) {
+    const entry = config.registry[key];
+    if (!entry || !isNonEmptyStringArray(entry.cmd)) {
+      throw new Error(`agent.registry.${key}.cmd must be a non-empty array of strings.`);
+    }
+  }
+
+  if (!config.registry[config.default]) {
+    throw new Error(`agent.default "${config.default}" is not defined in agent.registry.`);
+  }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }

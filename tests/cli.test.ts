@@ -9,8 +9,20 @@ import { Task } from "../src/types";
 import { getTrackerFolderName } from "../src/tasksFile";
 
 const baseConfig = {
-  agent: "codex" as const,
-  defaultAgent: "codex" as const,
+  agent: {
+    default: "codex",
+    registry: {
+      codex: {
+        cmd: ["codex", "exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"],
+      },
+      gemini: {
+        cmd: ["gemini", "--approval-mode", "auto_edit"],
+      },
+      claude: {
+        cmd: ["claude", "--allowedTools", "Read,Write,Bash", "--output-format", "json", "-p", "--verbose"],
+      },
+    },
+  },
   tasksFile: "tasks.md",
   outputDir: ".out",
 };
@@ -156,8 +168,19 @@ describe("DefaultCLI", () => {
     await expect(cli.run({ command: "resolve", agent: "other" })).rejects.toThrow(/Unsupported/);
   });
 
-  it("requires customAgentCmd when custom agent is requested", async () => {
+  it("rejects agent names missing from the registry", async () => {
     const configLoader = makeConfigLoader();
+    configLoader.load.mockReturnValue({
+      ...baseConfig,
+      agent: {
+        default: "codex",
+        registry: {
+          codex: {
+            cmd: ["codex"],
+          },
+        },
+      },
+    });
     const taskTracker = makeTaskTracker([
       { id: "T1", title: "Task", description: "", status: "open" },
     ]);
@@ -169,20 +192,22 @@ describe("DefaultCLI", () => {
       git,
     });
 
-    await expect(cli.run({ command: "resolve", agent: "custom" })).rejects.toThrow(
-      /customAgentCmd/
-    );
+    await expect(cli.run({ command: "resolve", agent: "custom" })).rejects.toThrow(/Unsupported/);
   });
 
-  it("uses a custom agent when configured as default", async () => {
+  it("uses a custom registry agent when configured as default", async () => {
     const runOnce = jest.fn().mockResolvedValue(undefined);
     const runAll = jest.fn();
     const configLoader = makeConfigLoader();
     configLoader.load.mockReturnValue({
       ...baseConfig,
-      agent: "custom",
-      defaultAgent: "custom",
-      customAgentCmd: ["/bin/echo", "--flag"],
+      agent: {
+        default: "gemini-lite",
+        registry: {
+          ...baseConfig.agent.registry,
+          "gemini-lite": { cmd: ["/bin/echo", "--flag"] },
+        },
+      },
     });
     const taskTracker = makeTaskTracker([
       { id: "T1", title: "Task", description: "", status: "open" },
@@ -199,7 +224,7 @@ describe("DefaultCLI", () => {
 
     await cli.run({ command: "resolve" });
 
-    expect(agentName).toBe("custom");
+    expect(agentName).toBe("gemini-lite");
     expect(runOnce).toHaveBeenCalled();
   });
 

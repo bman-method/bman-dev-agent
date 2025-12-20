@@ -24,6 +24,7 @@ import {
   TaskTracker,
   AgentName,
   CodeAgent,
+  AgentRegistryEntry,
 } from "./types";
 
 interface CLIOverrides {
@@ -149,48 +150,45 @@ export class DefaultCLI implements CLI {
   }
 
   private resolveAgent(agentOption: string | undefined, config: Config): AgentName {
-    const requested = this.normalizeAgent(agentOption);
+    const requested = this.normalizeAgent(agentOption, config.agent.registry);
     if (requested) {
-      if (requested === "custom" && !config.customAgentCmd) {
-        throw new UsageError(
-          'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": ["<command>"] to .bman/config.json.'
-        );
-      }
       return requested;
     }
 
-    const fallback = config.defaultAgent ?? config.agent;
-    if (fallback === "custom" && !config.customAgentCmd) {
+    const fallback = config.agent.default;
+    if (!config.agent.registry[fallback]) {
       throw new UsageError(
-        'defaultAgent is "custom" but customAgentCmd is missing. Add "customAgentCmd": ["<command>"] to .bman/config.json.'
+        `Default agent "${fallback}" is not defined in agent.registry.`
       );
     }
     return fallback;
   }
 
-  private normalizeAgent(agent: string | undefined): AgentName | null {
+  private normalizeAgent(
+    agent: string | undefined,
+    registry: Record<string, AgentRegistryEntry>
+  ): AgentName | null {
     if (!agent) {
       return null;
     }
     const lowered = agent.toLowerCase();
-    if (lowered === "codex" || lowered === "custom") {
+    if (registry[lowered]) {
       return lowered;
     }
-    throw new UsageError(`Unsupported agent "${agent}". Only "codex" or "custom" are supported.`);
+    const available = Object.keys(registry).sort().join(", ");
+    throw new UsageError(`Unsupported agent "${agent}". Available agents: ${available}`);
   }
 
   private createAgent(agentName: AgentName, config: Config): CodeAgent {
-    if (agentName === "custom") {
-      const parts = (config.customAgentCmd ?? []).map((part) => part.trim());
-      const [command, ...args] = parts;
-      if (!command) {
-        throw new UsageError(
-          'Custom agent requested but customAgentCmd is not set. Add "customAgentCmd": ["<command>"] to .bman/config.json.'
-        );
-      }
-      return new CLIAgent({ name: "custom", command, args });
+    const entry = config.agent.registry[agentName];
+    const parts = (entry?.cmd ?? []).map((part) => part.trim()).filter((part) => part.length > 0);
+    const [command, ...args] = parts;
+    if (!command) {
+      throw new UsageError(
+        `Agent "${agentName}" is missing a command. Configure agent.registry.${agentName}.cmd in .bman/config.json.`
+      );
     }
-    return new CLIAgent({ name: "codex" });
+    return new CLIAgent({ name: agentName, command, args });
   }
 
   private handleAddTask(branchName: string, options: CLIOptions): void {
@@ -339,7 +337,7 @@ Commands:
                   Resolve tasks using the configured agent
     --all, -a     Run all tasks sequentially
     --agent <name>
-                  Agent name ("codex" or "custom"; default from config)
+                  Agent name from agent.registry (default from config)
     --push        Push commits after each task (opt-in)
 
   add-task <description>

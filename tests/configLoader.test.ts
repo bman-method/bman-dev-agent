@@ -22,8 +22,25 @@ describe("DefaultConfigLoader", () => {
 
       const config = loader.load("main");
 
-      expect(config.agent).toBe("codex");
-      expect(config.defaultAgent).toBe("codex");
+      expect(config.agent.default).toBe("codex");
+      expect(config.agent.registry.codex?.cmd).toEqual([
+        "codex",
+        "exec",
+        "--sandbox",
+        "workspace-write",
+        "--skip-git-repo-check",
+        "-",
+      ]);
+      expect(config.agent.registry.gemini?.cmd).toEqual(["gemini", "--approval-mode", "auto_edit"]);
+      expect(config.agent.registry.claude?.cmd).toEqual([
+        "claude",
+        "--allowedTools",
+        "Read,Write,Bash",
+        "--output-format",
+        "json",
+        "-p",
+        "--verbose",
+      ]);
       expect(config.tasksFile).toBe(path.join(dir, ".bman", "tracker", "main", "tasks.md"));
       expect(config.outputDir).toBe(path.join(dir, ".bman", "output"));
 
@@ -57,7 +74,9 @@ describe("DefaultConfigLoader", () => {
       fs.writeFileSync(
         configPath,
         JSON.stringify({
-          agent: "Codex",
+          agent: {
+            default: "Codex",
+          },
           tasksFile: "custom-tasks.md",
           outputDir,
         })
@@ -66,29 +85,41 @@ describe("DefaultConfigLoader", () => {
       const loader = new DefaultConfigLoader(configPath);
       const config = loader.load("main");
 
-      expect(config.agent).toBe("codex");
-      expect(config.defaultAgent).toBe("codex");
+      expect(config.agent.default).toBe("codex");
       expect(config.tasksFile).toBe("custom-tasks.md");
       expect(config.outputDir).toBe(outputDir);
       expect(fs.existsSync(outputDir)).toBe(true);
     });
   });
 
-  it("validates supported agent, custom command, and required fields", () => {
+  it("validates supported agent registry entries and required fields", () => {
     const loader = new DefaultConfigLoader("unused");
 
     expect(() =>
       loader.validate({
-        agent: "other" as any,
+        agent: {
+          default: "other",
+          registry: {
+            codex: {
+              cmd: ["codex"],
+            },
+          },
+        },
         tasksFile: "tasks.md",
         outputDir: ".out",
-        defaultAgent: "codex",
       } as Config)
-    ).toThrow(/Unsupported agent/);
+    ).toThrow(/agent.default/);
 
     expect(() =>
       loader.validate({
-        agent: "codex",
+        agent: {
+          default: "codex",
+          registry: {
+            codex: {
+              cmd: [],
+            },
+          },
+        },
         tasksFile: "",
         outputDir: ".out",
       } as Config)
@@ -96,7 +127,14 @@ describe("DefaultConfigLoader", () => {
 
     expect(() =>
       loader.validate({
-        agent: "codex",
+        agent: {
+          default: "codex",
+          registry: {
+            codex: {
+              cmd: ["codex"],
+            },
+          },
+        },
         tasksFile: "tasks.md",
         outputDir: "",
       } as Config)
@@ -104,20 +142,33 @@ describe("DefaultConfigLoader", () => {
 
     expect(() =>
       loader.validate({
-        agent: "custom",
+        agent: {
+          default: "codex",
+          registry: {
+            codex: {
+              cmd: [],
+            },
+          },
+        },
         tasksFile: "tasks.md",
         outputDir: ".out",
       } as Config)
-    ).toThrow(/customAgentCmd/);
+    ).toThrow(/agent.registry.codex.cmd/);
 
     expect(() =>
       loader.validate({
-        agent: "custom",
+        agent: {
+          default: "custom",
+          registry: {
+            custom: {
+              cmd: [],
+            },
+          },
+        },
         tasksFile: "tasks.md",
         outputDir: ".out",
-        customAgentCmd: [],
       } as Config)
-    ).toThrow(/customAgentCmd/);
+    ).toThrow(/agent.registry.custom.cmd/);
   });
 
   it("requires a branch name when tasksFile is not provided", () => {
@@ -136,8 +187,12 @@ describe("DefaultConfigLoader", () => {
       fs.writeFileSync(
         configPath,
         JSON.stringify({
-          defaultAgent: "custom",
-          customAgentCmd: ["/bin/echo", "--flag"],
+          agent: {
+            default: "gemini-lite",
+            registry: {
+              "gemini-lite": { cmd: ["/bin/echo", "--flag"] },
+            },
+          },
           tasksFile: "tasks.md",
           outputDir: ".out",
         })
@@ -146,9 +201,8 @@ describe("DefaultConfigLoader", () => {
       const loader = new DefaultConfigLoader(configPath);
       const config = loader.load("main");
 
-      expect(config.agent).toBe("custom");
-      expect(config.defaultAgent).toBe("custom");
-      expect(config.customAgentCmd).toEqual(["/bin/echo", "--flag"]);
+      expect(config.agent.default).toBe("gemini-lite");
+      expect(config.agent.registry["gemini-lite"]?.cmd).toEqual(["/bin/echo", "--flag"]);
       loader.validate(config);
     });
   });

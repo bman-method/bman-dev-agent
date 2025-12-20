@@ -1,11 +1,18 @@
 import type { AgentOutput, AgentOutputStatus } from "./agentOutputSchema";
 
-export type AgentName = "codex" | "custom";
+export type AgentName = string;
+
+export interface AgentRegistryEntry {
+  cmd: string[];
+}
+
+export interface AgentConfig {
+  default: AgentName;
+  registry: Record<string, AgentRegistryEntry>;
+}
 
 export interface Config {
-  agent: AgentName;
-  defaultAgent?: AgentName;
-  customAgentCmd?: string[];
+  agent: AgentConfig;
   tasksFile: string;
   outputDir: string;
 }
