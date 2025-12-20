@@ -63,3 +63,10 @@ Also fix the usage text to specify the built in agent names (claude / gemini / c
 
 - [x] TASK-6: Update readme.md with the agent config changes made in this branch.
 The update should include an example of how to configure custom agent entry.
+
+- [ ] TASK-7: In task 5 you were requested to encapsulate the agents registry handling in CLIAgent. This was partially done, because I still see that the ConfigLoader is using CLIAgent.defaultRegistry() method. This should not be the case.
+CLIAgent should not be dependency of configLoader. Instead, the agent config should be passed to CLIAgent as is, and CLIAgent can make the decisions on how to use the default configs if no config is provided in the file.
+* Make sure that the default registry config is merged with the config file's registry.
+For instance, if the config file contins only the agent "claude", the user can still use gemini (--agent gemini) and in this case, the cmd line config of gemini will be taken from the default registry.
+However, if the config file contains "gemini" in the agents registry - this will be used (not the default)
+* Check if you need to update the readme.md
