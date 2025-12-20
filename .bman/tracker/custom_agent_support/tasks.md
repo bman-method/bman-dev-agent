@@ -43,12 +43,15 @@ I want it to be like this:
 ```
 This also affects the command line args,
 Instead of --agent custom, you can use --agent <name> where name must be one of the keys of the registry above. However, we should still have constant defaults for codex, gemini and claude.
-codex - look at the code, the defaults are there
+codex - the default cmd should be:
+```
+["codex","exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"]
+```
 gemini - the default cmd should be:
 ```
 ["gemini", "--approval-mode", "auto_edit"]
 ```
 claude - the default cmd should be:
 ```
-["claude", "--allowedTools", "Read,Write", "--output-format", "json", "-p", "--verbose"]
+["claude", "--allowedTools", "Read,Write,Bash", "--output-format", "json", "-p", "--verbose"]
 ```
