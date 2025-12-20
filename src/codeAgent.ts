@@ -87,7 +87,8 @@ export class CLIAgent implements CodeAgent {
                 stdio: ["pipe", "pipe", "pipe"],
             });
             child.on("error", (err) => {
-                logStream.end(() => finish(err));
+                const handledError = buildSpawnError(err, command);
+                logStream.end(() => finish(handledError));
             });
             child.stdout?.pipe(logStream, { end: false });
             child.stderr?.pipe(logStream, { end: false });
@@ -172,4 +173,15 @@ function ensureDirectoryFor(filePath: string): void {
 function buildLogPath(ctx: RunContext, agentName: string): string {
     const outputRoot = path.dirname(path.dirname(ctx.outputPath));
     return path.join(outputRoot, "logs", `${agentName}-${ctx.taskId}-${ctx.timestamp}.log`);
+}
+
+function buildSpawnError(err: Error, command: string): Error {
+    const nodeErr = err as NodeJS.ErrnoException;
+    if (nodeErr.code !== "ENOENT") {
+        return err;
+    }
+    return new Error(
+        `Cannot run the agent program: "${command}". Please make sure the executable is available in your PATH. ` +
+            "To choose another agent, change the default in .bman/config.json or use --agent <agent name>."
+    );
 }

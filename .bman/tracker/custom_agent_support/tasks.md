@@ -75,8 +75,7 @@ However, if the config file contains "gemini" in the agents registry - this will
 
 - [x] TASK-9: the method resolveAgent need to get out of cli.ts because it doesn't know the built in agents. In order to print agent name, the cli.ts code can get it from the CLIAgent class instance (that may expose the name)
 
-- [ ] TASK-10: when agent binary is missing, the error is not informative enough
-
+- [x] TASK-10: when agent binary is missing, the error is not informative enough
 Example:
 Orchestrator: task TASK-10 failed - spawn mmm-my-agent ENOENT
 spawn mmm-my-agent ENOENT
