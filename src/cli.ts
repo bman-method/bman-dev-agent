@@ -22,9 +22,7 @@ import {
   OrchestratorFactory,
   TaskTrackerDocument,
   TaskTracker,
-  AgentName,
   CodeAgent,
-  AgentRegistryEntry,
 } from "./types";
 
 interface CLIOverrides {
@@ -73,7 +71,7 @@ export class DefaultCLI implements CLI {
     }
 
     const { configLoader, config, taskTracker, document } = this.loadTaskContext(branchName);
-    const agentName = this.resolveAgent(options.agent, config);
+    const agent = this.createAgent(options.agent, config);
 
     const hasBlockedTask = document.tasks.some((task) => task.status === "blocked");
     if (hasBlockedTask) {
@@ -90,7 +88,7 @@ export class DefaultCLI implements CLI {
 
     const orchestrator =
       this.overrides.orchestrator ??
-      this.createOrchestrator(branchName, configLoader, taskTracker, git, agentName, config);
+      this.createOrchestrator(branchName, configLoader, taskTracker, git, agent, config);
 
     if (options.all) {
       await orchestrator.runAll();
@@ -116,7 +114,7 @@ export class DefaultCLI implements CLI {
     configLoader: ConfigLoader,
     taskTracker: TaskTracker,
     git: GitOps,
-    agentName: AgentName,
+    agent: CodeAgent,
     config: Config
   ): Orchestrator {
     const resolvedConfigLoader = configLoader ?? this.overrides.configLoader ?? new DefaultConfigLoader();
@@ -139,7 +137,7 @@ export class DefaultCLI implements CLI {
       promptStrategy: new DefaultPromptStrategy(),
       runContextFactory: new DefaultRunContextFactory(),
       contract: DefaultOutputContract,
-      agent: this.createAgent(agentName, resolvedConfig),
+      agent,
       resultParser: new DefaultResultParser(),
       commitFormatter: new DefaultCommitMessageFormatter(),
       git: resolvedGit,
@@ -149,37 +147,8 @@ export class DefaultCLI implements CLI {
     return factory.create(deps);
   }
 
-  private resolveAgent(agentOption: string | undefined, config: Config): AgentName {
-    const requested = this.normalizeAgent(agentOption, config.agent.registry);
-    if (requested) {
-      return requested;
-    }
-
-    const fallback = config.agent.default;
-    if (!config.agent.registry[fallback]) {
-      throw new UsageError(
-        `Default agent "${fallback}" is not defined in agent.registry.`
-      );
-    }
-    return fallback;
-  }
-
-  private normalizeAgent(
-    agent: string | undefined,
-    registry: Record<string, AgentRegistryEntry>
-  ): AgentName | null {
-    if (!agent) {
-      return null;
-    }
-    const lowered = agent.toLowerCase();
-    if (registry[lowered]) {
-      return lowered;
-    }
-    const available = Object.keys(registry).sort().join(", ");
-    throw new UsageError(`Unsupported agent "${agent}". Available agents: ${available}`);
-  }
-
-  private createAgent(agentName: AgentName, config: Config): CodeAgent {
+  private createAgent(agentOption: string | undefined, config: Config): CodeAgent {
+    const agentName = CLIAgent.resolveName(agentOption, config.agent);
     return new CLIAgent({ name: agentName, agentConfig: config.agent });
   }
 

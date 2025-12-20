@@ -27,6 +27,21 @@ const DEFAULT_AGENT_REGISTRY: Record<string, AgentRegistryEntry> = {
 };
 
 export class CLIAgent implements CodeAgent {
+    static resolveName(agentOption: string | undefined, agentConfig?: AgentConfig): AgentName {
+        const registry = mergeRegistry(agentConfig?.registry);
+        const requested = normalizeAgentOption(agentOption, registry);
+        if (requested) {
+            return requested;
+        }
+
+        const fallback = normalizeAgentName(agentConfig?.default);
+        if (!registry[fallback]) {
+            const available = Object.keys(registry).sort().join(", ");
+            throw new Error(`Default agent "${fallback}" is not defined. Available agents: ${available}`);
+        }
+        return fallback;
+    }
+
     static defaultRegistry(): Record<string, AgentRegistryEntry> {
         return { ...DEFAULT_AGENT_REGISTRY };
     }
@@ -115,6 +130,29 @@ function resolveCommand(options: CLIAgentOptions): { name: string; command: stri
         );
     }
     return { name, command, args };
+}
+
+function normalizeAgentName(agent: string | undefined): string {
+    if (!agent) {
+        return "codex";
+    }
+    const normalized = agent.trim().toLowerCase();
+    return normalized || "codex";
+}
+
+function normalizeAgentOption(
+    agent: string | undefined,
+    registry: Record<string, AgentRegistryEntry>
+): AgentName | null {
+    if (!agent) {
+        return null;
+    }
+    const lowered = agent.trim().toLowerCase();
+    if (registry[lowered]) {
+        return lowered;
+    }
+    const available = Object.keys(registry).sort().join(", ");
+    throw new Error(`Unsupported agent "${agent}". Available agents: ${available}`);
 }
 
 function mergeRegistry(
