@@ -71,6 +71,6 @@ For instance, if the config file contins only the agent "claude", the user can s
 However, if the config file contains "gemini" in the agents registry - this will be used (not the default)
 * Check if you need to update the readme.md
 
-- [ ] TASK-8: Update readme.md with the built in agents that we support now (claude, gemini, codex, custom command) and remove the Planned / upcoming support
+- [x] TASK-8: Update readme.md with the built in agents that we support now (claude, gemini, codex, custom command) and remove the Planned / upcoming support
 
 - [ ] TASK-9: the method resolveAgent need to get out of cli.ts because it doesn't know the built in agents. In order to print agent name, the cli.ts code can get it from the CLIAgent class instance (that may expose the name)

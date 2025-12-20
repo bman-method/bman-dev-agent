@@ -133,17 +133,12 @@ Notes:
 
 `bman-dev-agent` is designed to be **agent-agnostic**. The orchestration, safety guarantees, and commit discipline are independent of the underlying LLM or coding tool.
 
-Currently supported:
+Currently supported built-in agents:
 
-* **Codex CLI** – the only built-in implementation today (required in `PATH`)
-
-Planned / upcoming support:
-
-* **Gemini** (via CLI or API wrapper)
+* **Codex CLI** (required in `PATH`)
 * **Claude Code**
-* **Custom command adapter** (any executable that follows the input/output contract)
-
-The long-term goal is to allow swapping or mixing agents **without changing the workflow**, so teams can adopt new models while keeping the same B-MAN safety and review guarantees.
+* **Gemini**
+* **Custom command** (any executable that follows the input/output contract)
 
 ---
 
