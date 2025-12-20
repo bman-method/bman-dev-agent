@@ -70,3 +70,5 @@ CLIAgent should not be dependency of configLoader. Instead, the agent config sho
 For instance, if the config file contins only the agent "claude", the user can still use gemini (--agent gemini) and in this case, the cmd line config of gemini will be taken from the default registry.
 However, if the config file contains "gemini" in the agents registry - this will be used (not the default)
 * Check if you need to update the readme.md
+
+- [ ] TASK-8: Update readme.md with the built in agents that we support now (claude, gemini, codex, custom command) and remove the Planned / upcoming support
