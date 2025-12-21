@@ -1,5 +1,6 @@
 import { DefaultPromptStrategy } from "../src/promptStrategy";
 import { OutputContract, PromptInput, Task } from "../src/types";
+import path from "node:path";
 
 const task: Task = {
   id: "TASK-5",
@@ -29,7 +30,12 @@ function buildInput(overrides: Partial<PromptInput> = {}): PromptInput {
   const base: PromptInput = {
     task,
     config: {
-      agent: "codex",
+      agent: {
+        default: "codex",
+        registry: {
+          codex: { cmd: ["codex"] },
+        },
+      },
       tasksFile: "tasks.md",
       outputDir: ".out",
     },
@@ -78,5 +84,23 @@ describe("DefaultPromptStrategy", () => {
 
     expect(prompt).toContain("Tasks file prelude:\nNone.");
     expect(prompt).toContain("Completed tasks:\nNone.");
+  });
+
+  it("renders output file path relative to the current working directory", () => {
+    const absoluteOutputPath = path.join(process.cwd(), ".out", "TASK-5", "run-123.json");
+
+    const prompt = new DefaultPromptStrategy().build(
+      buildInput({
+        runContext: {
+          taskId: task.id,
+          runId: "run-123",
+          timestamp: "20240101000000000",
+          attempt: 1,
+          outputPath: absoluteOutputPath,
+        },
+      })
+    );
+
+    expect(prompt).toContain(`Output file:\n.out${path.sep}TASK-5${path.sep}run-123.json`);
   });
 });

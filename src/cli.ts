@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
-import { CodexAgent } from "./codeAgent";
+import { CLIAgent } from "./codeAgent";
 import { DefaultCommitMessageFormatter } from "./commitMessageFormatter";
 import { DefaultConfigLoader } from "./configLoader";
 import { DefaultGitOps } from "./gitOps";
@@ -22,6 +22,7 @@ import {
   OrchestratorFactory,
   TaskTrackerDocument,
   TaskTracker,
+  CodeAgent,
 } from "./types";
 
 interface CLIOverrides {
@@ -69,12 +70,8 @@ export class DefaultCLI implements CLI {
       throw new UsageError(`Unknown command "${options.command}".`);
     }
 
-    const agentName = (options.agent ?? "codex").toLowerCase();
-    if (agentName !== "codex") {
-      throw new UsageError(`Unsupported agent "${options.agent}". Only "codex" is supported.`);
-    }
-
-    const { configLoader, taskTracker, document } = this.loadTaskContext(branchName);
+    const { configLoader, config, taskTracker, document } = this.loadTaskContext(branchName);
+    const agent = this.createAgent(options.agent, config);
 
     const hasBlockedTask = document.tasks.some((task) => task.status === "blocked");
     if (hasBlockedTask) {
@@ -91,7 +88,7 @@ export class DefaultCLI implements CLI {
 
     const orchestrator =
       this.overrides.orchestrator ??
-      this.createOrchestrator(branchName, configLoader, taskTracker, git);
+      this.createOrchestrator(branchName, configLoader, taskTracker, git, agent, config);
 
     if (options.all) {
       await orchestrator.runAll();
@@ -116,7 +113,9 @@ export class DefaultCLI implements CLI {
     branchName: string,
     configLoader: ConfigLoader,
     taskTracker: TaskTracker,
-    git: GitOps
+    git: GitOps,
+    agent: CodeAgent,
+    config: Config
   ): Orchestrator {
     const resolvedConfigLoader = configLoader ?? this.overrides.configLoader ?? new DefaultConfigLoader();
     const resolvedGit = git ?? this.overrides.git ?? new DefaultGitOps(process.cwd());
@@ -124,10 +123,12 @@ export class DefaultCLI implements CLI {
       taskTracker ??
       this.overrides.taskTracker ??
       (() => {
-        const trackerConfig = resolvedConfigLoader.load(branchName);
+        const trackerConfig = config ?? resolvedConfigLoader.load(branchName);
         resolvedConfigLoader.validate(trackerConfig);
         return new DefaultTaskTracker(trackerConfig.tasksFile);
       })();
+    const resolvedConfig = config ?? resolvedConfigLoader.load(branchName);
+    resolvedConfigLoader.validate(resolvedConfig);
 
     const deps: OrchestratorDeps = {
       configLoader: resolvedConfigLoader,
@@ -136,7 +137,7 @@ export class DefaultCLI implements CLI {
       promptStrategy: new DefaultPromptStrategy(),
       runContextFactory: new DefaultRunContextFactory(),
       contract: DefaultOutputContract,
-      agent: new CodexAgent(),
+      agent,
       resultParser: new DefaultResultParser(),
       commitFormatter: new DefaultCommitMessageFormatter(),
       git: resolvedGit,
@@ -144,6 +145,11 @@ export class DefaultCLI implements CLI {
 
     const factory = this.overrides.orchestratorFactory ?? new DefaultOrchestratorFactory();
     return factory.create(deps);
+  }
+
+  private createAgent(agentOption: string | undefined, config: Config): CodeAgent {
+    const agentName = CLIAgent.resolveName(agentOption, config.agent);
+    return new CLIAgent({ name: agentName, agentConfig: config.agent });
   }
 
   private handleAddTask(branchName: string, options: CLIOptions): void {
@@ -289,10 +295,10 @@ Usage: bman-dev-agent <command> [options]
 
 Commands:
   resolve [options]
-                  Resolve tasks using the Codex agent
+                  Resolve tasks using the configured agent
     --all, -a     Run all tasks sequentially
     --agent <name>
-                  Agent name (only "codex" supported; default: codex)
+                  Agent name from agent.registry (built-ins: claude, gemini, codex)
     --push        Push commits after each task (opt-in)
 
   add-task <description>

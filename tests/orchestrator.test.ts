@@ -13,7 +13,16 @@ function makeTrackerDocument(): TaskTrackerDocument {
 
 function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
   const trackerDocument = makeTrackerDocument();
-  const config: Config = { agent: "codex", tasksFile: "tasks.md", outputDir: ".out" };
+  const config: Config = {
+    agent: {
+      default: "codex",
+      registry: {
+        codex: { cmd: ["codex"] },
+      },
+    },
+    tasksFile: "tasks.md",
+    outputDir: ".out",
+  };
   const branchName = overrides.branchName ?? "main";
 
   const deps: OrchestratorDeps = {

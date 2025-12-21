@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Config, ConfigLoader } from "./types";
+import { AgentConfig, AgentName, AgentRegistryEntry, Config, ConfigLoader } from "./types";
 import { getDefaultTasksFilePath } from "./tasksFile";
 
 export class DefaultConfigLoader implements ConfigLoader {
@@ -18,7 +18,7 @@ export class DefaultConfigLoader implements ConfigLoader {
       throw new Error("Branch name is required to determine default tasks file path.");
     }
 
-    const agent = (fileConfig.agent ?? "codex").toLowerCase();
+    const agentConfig = buildAgentConfig(fileConfig.agent);
     const tasksFile =
       fileConfig.tasksFile ?? getDefaultTasksFilePath(trimmedBranchName, configDir);
     const outputDir = fileConfig.outputDir ?? path.join(configDir, "output");
@@ -27,16 +27,14 @@ export class DefaultConfigLoader implements ConfigLoader {
     ensureDirectory(path.dirname(resolvePath(tasksFile)));
 
     return {
-      agent,
+      agent: agentConfig,
       tasksFile,
       outputDir,
     };
   }
 
   validate(config: Config): void {
-    if (typeof config.agent !== "string" || config.agent.toLowerCase() !== "codex") {
-      throw new Error(`Unsupported agent "${config.agent}". Only "codex" is supported.`);
-    }
+    validateAgentConfig(config.agent);
 
     if (!isNonEmptyString(config.tasksFile)) {
       throw new Error("tasksFile must be a non-empty string.");
@@ -48,21 +46,80 @@ export class DefaultConfigLoader implements ConfigLoader {
   }
 }
 
-function readConfigFile(resolvedPath: string): Partial<Config> {
+type FileConfig = Partial<Omit<Config, "agent">> & {
+  agent?: unknown;
+};
+
+function readConfigFile(resolvedPath: string): FileConfig {
   if (!fs.existsSync(resolvedPath)) {
     return {};
   }
 
   const content = fs.readFileSync(resolvedPath, "utf8");
-  return JSON.parse(content) as Partial<Config>;
+  return JSON.parse(content) as FileConfig;
+}
+
+function buildAgentConfig(rawAgent: unknown): AgentConfig {
+  const agentObject = isPlainObject(rawAgent) ? (rawAgent as Record<string, unknown>) : {};
+  const defaultAgent = normalizeAgentName(agentObject.default);
+  const registry = buildRegistry(agentObject.registry);
+
+  return {
+    default: defaultAgent,
+    registry,
+  };
+}
+
+function buildRegistry(rawRegistry: unknown): Record<string, AgentRegistryEntry> {
+  const registry: Record<string, AgentRegistryEntry> = {};
+  if (!isPlainObject(rawRegistry)) {
+    return registry;
+  }
+  for (const [rawKey, value] of Object.entries(rawRegistry)) {
+    const key = normalizeRegistryKey(rawKey);
+    if (!key) {
+      continue;
+    }
+    const entry = isPlainObject(value) ? (value as Record<string, unknown>) : {};
+    const cmd = normalizeCmd(entry.cmd);
+    registry[key] = { cmd: cmd ?? [] };
+  }
+  return registry;
 }
 
 function ensureDirectory(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+function normalizeAgentName(agent: unknown): AgentName {
+  if (typeof agent !== "string") {
+    return "codex";
+  }
+  const normalized = agent.trim().toLowerCase();
+  return normalized || "codex";
+}
+
+function normalizeRegistryKey(key: string): string {
+  return key.trim().toLowerCase();
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function isNonEmptyStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.length > 0 && value.every((item) => isNonEmptyString(item));
+}
+
+function normalizeCmd(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const trimmed = value.map((item) => (typeof item === "string" ? item.trim() : ""));
+  if (!isNonEmptyStringArray(trimmed)) {
+    return null;
+  }
+  return trimmed;
 }
 
 function resolveDir(dir: string): string {
@@ -71,4 +128,26 @@ function resolveDir(dir: string): string {
 
 function resolvePath(filePath: string): string {
   return path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+}
+
+function validateAgentConfig(config: AgentConfig): void {
+  if (!isNonEmptyString(config.default)) {
+    throw new Error("agent.default must be a non-empty string.");
+  }
+
+  if (!isPlainObject(config.registry)) {
+    throw new Error("agent.registry must be an object.");
+  }
+
+  const keys = Object.keys(config.registry);
+  for (const key of keys) {
+    const entry = config.registry[key];
+    if (!entry || !isNonEmptyStringArray(entry.cmd)) {
+      throw new Error(`agent.registry.${key}.cmd must be a non-empty array of strings.`);
+    }
+  }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }

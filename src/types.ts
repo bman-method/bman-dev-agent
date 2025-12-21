@@ -1,7 +1,18 @@
 import type { AgentOutput, AgentOutputStatus } from "./agentOutputSchema";
 
+export type AgentName = string;
+
+export interface AgentRegistryEntry {
+  cmd: string[];
+}
+
+export interface AgentConfig {
+  default: AgentName;
+  registry: Record<string, AgentRegistryEntry>;
+}
+
 export interface Config {
-  agent: string;
+  agent: AgentConfig;
   tasksFile: string;
   outputDir: string;
 }

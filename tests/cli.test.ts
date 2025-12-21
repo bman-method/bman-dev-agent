@@ -8,7 +8,24 @@ import { parseDocument } from "../src/taskTracker";
 import { Task } from "../src/types";
 import { getTrackerFolderName } from "../src/tasksFile";
 
-const baseConfig = { agent: "codex", tasksFile: "tasks.md", outputDir: ".out" };
+const baseConfig = {
+  agent: {
+    default: "codex",
+    registry: {
+      codex: {
+        cmd: ["codex", "exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"],
+      },
+      gemini: {
+        cmd: ["gemini", "--approval-mode", "auto_edit"],
+      },
+      claude: {
+        cmd: ["claude", "--allowedTools", "Read,Write,Bash", "--output-format", "json", "-p", "--verbose"],
+      },
+    },
+  },
+  tasksFile: "tasks.md",
+  outputDir: ".out",
+};
 
 type MockConfigLoader = { load: jest.Mock; validate: jest.Mock };
 
@@ -136,11 +153,79 @@ describe("DefaultCLI", () => {
   });
 
   it("rejects unsupported agents", async () => {
+    const configLoader = makeConfigLoader();
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
+    const git = makeGit();
     const cli = new DefaultCLI({
       orchestrator: { runOnce: jest.fn(), runAll: jest.fn() },
+      configLoader,
+      taskTracker,
+      git,
     });
 
     await expect(cli.run({ command: "resolve", agent: "other" })).rejects.toThrow(/Unsupported/);
+  });
+
+  it("rejects agent names missing from the registry", async () => {
+    const configLoader = makeConfigLoader();
+    configLoader.load.mockReturnValue({
+      ...baseConfig,
+      agent: {
+        default: "codex",
+        registry: {
+          codex: {
+            cmd: ["codex"],
+          },
+        },
+      },
+    });
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
+    const git = makeGit();
+    const cli = new DefaultCLI({
+      orchestrator: { runOnce: jest.fn(), runAll: jest.fn() },
+      configLoader,
+      taskTracker,
+      git,
+    });
+
+    await expect(cli.run({ command: "resolve", agent: "custom" })).rejects.toThrow(/Unsupported/);
+  });
+
+  it("uses a custom registry agent when configured as default", async () => {
+    const runOnce = jest.fn().mockResolvedValue(undefined);
+    const runAll = jest.fn();
+    const configLoader = makeConfigLoader();
+    configLoader.load.mockReturnValue({
+      ...baseConfig,
+      agent: {
+        default: "gemini-lite",
+        registry: {
+          ...baseConfig.agent.registry,
+          "gemini-lite": { cmd: ["/bin/echo", "--flag"] },
+        },
+      },
+    });
+    const taskTracker = makeTaskTracker([
+      { id: "T1", title: "Task", description: "", status: "open" },
+    ]);
+    const git = makeGit();
+    let agentName: string | undefined;
+    const orchestratorFactory = {
+      create: jest.fn((deps) => {
+        agentName = deps.agent.name;
+        return { runOnce, runAll };
+      }),
+    };
+    const cli = new DefaultCLI({ configLoader, taskTracker, orchestratorFactory, git });
+
+    await cli.run({ command: "resolve" });
+
+    expect(agentName).toBe("gemini-lite");
+    expect(runOnce).toHaveBeenCalled();
   });
 
   it("prints usage and exits when help is requested", async () => {
