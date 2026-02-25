@@ -1,1 +1,1 @@
-- [ ] TASK-1: Some tests are failing, please fix them
+- [x] TASK-1: Some tests are failing, please fix them
