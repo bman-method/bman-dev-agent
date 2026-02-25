@@ -38,9 +38,9 @@ export class DefaultPromptStrategy implements PromptStrategy {
             "Do not describe execution flow or git operations.",
         ].join("\n");
         const parts = [
-            section("Task", formatTask(task)),
             section("Tasks file prelude", trackerDocument.preludeText || "None."),
             section("Completed tasks", formatCompletedTasks(trackerDocument.tasks, task.id)),
+            section("Task", formatTask(task)),
             section("Output file", outputPath),
             section("Output contract", formatContract(contract)),
             section("Instructions", instructions),

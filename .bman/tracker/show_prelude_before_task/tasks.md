@@ -1,1 +1,1 @@
-- [ ] TASK-1: Make sure that in the prompt you build for a task, the prelude is at the top, then the list of done tasks and eventually the task to perform
+- [x] TASK-1: Make sure that in the prompt you build for a task, the prelude is at the top, then the list of done tasks and eventually the task to perform
