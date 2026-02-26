@@ -22,6 +22,7 @@ export class DefaultConfigLoader implements ConfigLoader {
     const tasksFile =
       fileConfig.tasksFile ?? getDefaultTasksFilePath(trimmedBranchName, configDir);
     const outputDir = fileConfig.outputDir ?? path.join(configDir, "output");
+    const preCommitCmd = fileConfig.preCommitCmd !== undefined ? normalizeCmd(fileConfig.preCommitCmd) : null;
 
     ensureDirectory(resolveDir(outputDir));
     ensureDirectory(path.dirname(resolvePath(tasksFile)));
@@ -30,6 +31,7 @@ export class DefaultConfigLoader implements ConfigLoader {
       agent: agentConfig,
       tasksFile,
       outputDir,
+      ...(preCommitCmd !== null ? { preCommitCmd } : {}),
     };
   }
 
@@ -45,11 +47,16 @@ export class DefaultConfigLoader implements ConfigLoader {
     }
 
     validateRegistryEntries(config.agent.registry);
+
+    if (config.preCommitCmd !== undefined && !isNonEmptyStringArray(config.preCommitCmd)) {
+      throw new Error("preCommitCmd must be a non-empty array of non-empty strings.");
+    }
   }
 }
 
-type FileConfig = Partial<Omit<Config, "agent">> & {
+type FileConfig = Partial<Omit<Config, "agent" | "preCommitCmd">> & {
   agent?: unknown;
+  preCommitCmd?: unknown;
 };
 
 function readConfigFile(resolvedPath: string): FileConfig {

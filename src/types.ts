@@ -15,6 +15,7 @@ export interface Config {
   agent: AgentConfig;
   tasksFile: string;
   outputDir: string;
+  preCommitCmd?: string[];
 }
 
 export interface ConfigLoader {

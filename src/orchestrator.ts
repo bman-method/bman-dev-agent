@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { AgentOutput, Orchestrator, OrchestratorDeps, OrchestratorFactory, PromptInput, Task, TaskTrackerDocument, } from "./types";
 export class OrchestratorError extends Error {
 }
@@ -38,6 +39,10 @@ export class DefaultOrchestrator implements Orchestrator {
             const updatedTasks = this.updateTasks(taskTracker, trackerDocument, task, output);
             taskTracker.saveDocument({ ...trackerDocument, tasks: updatedTasks });
             tasksUpdated = true;
+            if (config.preCommitCmd && config.preCommitCmd.length > 0) {
+                const [cmd, ...args] = config.preCommitCmd;
+                execFileSync(cmd, args, { stdio: "inherit" });
+            }
             const title = commitFormatter.formatTitle(task, output);
             const body = commitFormatter.formatBody(task, output);
             commitSha = git.commit(title, body);

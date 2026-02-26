@@ -1,3 +1,5 @@
+jest.mock("node:child_process", () => ({ execFileSync: jest.fn() }));
+import { execFileSync } from "node:child_process";
 import { DefaultOrchestrator, OrchestratorError } from "../src/orchestrator";
 import { AgentOutput, Config, OrchestratorDeps, Task, TaskTrackerDocument } from "../src/types";
 
@@ -198,5 +200,36 @@ describe("DefaultOrchestrator", () => {
     );
     expect(deps.taskTracker.saveDocument).toHaveBeenCalled();
     expect(deps.git.commit).not.toHaveBeenCalled();
+  });
+
+  it("runs preCommitCmd before git commit when configured", async () => {
+    const mockExec = execFileSync as jest.Mock;
+    mockExec.mockClear();
+    const configWithPreCommit: Config = {
+      agent: { default: "codex", registry: { codex: { cmd: ["codex"] } } },
+      tasksFile: "tasks.md",
+      outputDir: ".out",
+      preCommitCmd: ["npm", "run", "lint"],
+    };
+    const deps = makeDeps({
+      configLoader: { load: jest.fn(() => configWithPreCommit), validate: jest.fn() },
+    });
+
+    const orchestrator = new DefaultOrchestrator(deps);
+    await orchestrator.runOnce();
+
+    expect(mockExec).toHaveBeenCalledWith("npm", ["run", "lint"], expect.objectContaining({ stdio: "inherit" }));
+    expect(mockExec.mock.invocationCallOrder[0]).toBeLessThan((deps.git.commit as jest.Mock).mock.invocationCallOrder[0]);
+  });
+
+  it("does not run execFileSync when preCommitCmd is not configured", async () => {
+    const mockExec = execFileSync as jest.Mock;
+    mockExec.mockClear();
+    const deps = makeDeps();
+
+    const orchestrator = new DefaultOrchestrator(deps);
+    await orchestrator.runOnce();
+
+    expect(mockExec).not.toHaveBeenCalled();
   });
 });
