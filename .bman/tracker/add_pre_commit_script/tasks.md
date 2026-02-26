@@ -1,0 +1,1 @@
+- [x] TASK-1: Add a property to the config file (optional) for running pre-commit command

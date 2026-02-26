@@ -206,4 +206,62 @@ describe("DefaultConfigLoader", () => {
       loader.validate(config);
     });
   });
+
+  it("loads preCommitCmd from config file", () => {
+    withTempDir((dir) => {
+      const configPath = path.join(dir, ".bman", "config.json");
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(
+        configPath,
+        JSON.stringify({
+          tasksFile: "tasks.md",
+          outputDir: path.join(dir, "out"),
+          preCommitCmd: ["npm", "run", "lint"],
+        })
+      );
+
+      const loader = new DefaultConfigLoader(configPath);
+      const config = loader.load("main");
+
+      expect(config.preCommitCmd).toEqual(["npm", "run", "lint"]);
+    });
+  });
+
+  it("omits preCommitCmd when not specified in config file", () => {
+    withTempDir((dir) => {
+      const configPath = path.join(dir, ".bman", "config.json");
+      const loader = new DefaultConfigLoader(configPath);
+      const config = loader.load("main");
+
+      expect(config.preCommitCmd).toBeUndefined();
+    });
+  });
+
+  it("validates preCommitCmd must be a non-empty array of non-empty strings", () => {
+    const loader = new DefaultConfigLoader("unused");
+
+    expect(() =>
+      loader.validate({
+        agent: {
+          default: "codex",
+          registry: { codex: { cmd: ["codex"] } },
+        },
+        tasksFile: "tasks.md",
+        outputDir: ".out",
+        preCommitCmd: [],
+      })
+    ).toThrow(/preCommitCmd/);
+
+    expect(() =>
+      loader.validate({
+        agent: {
+          default: "codex",
+          registry: { codex: { cmd: ["codex"] } },
+        },
+        tasksFile: "tasks.md",
+        outputDir: ".out",
+        preCommitCmd: ["npm", "run", "lint"],
+      })
+    ).not.toThrow();
+  });
 });
