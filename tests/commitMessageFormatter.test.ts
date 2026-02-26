@@ -52,11 +52,26 @@ describe("DefaultCommitMessageFormatter", () => {
         [
           "AI Thoughts",
           "-----------",
-          "Changes made: Did the thing.",
-          "Assumptions: None",
-          "Decisions taken: Kept scope small.",
-          "Points of unclarity: None",
-          "Tests run: Not run",
+          "",
+          "Changes made",
+          "------------",
+          "Did the thing.",
+          "",
+          "Assumptions",
+          "-----------",
+          "None",
+          "",
+          "Decisions taken",
+          "---------------",
+          "Kept scope small.",
+          "",
+          "Points of unclarity",
+          "-------------------",
+          "None",
+          "",
+          "Tests run",
+          "---------",
+          "Not run",
         ].join("\n"),
         warningBlock,
       ].join("\n\n")
@@ -79,18 +94,28 @@ describe("DefaultCommitMessageFormatter", () => {
         [
           "AI Thoughts",
           "-----------",
-          "Changes made:",
-          "Assumptions:",
-          "Decisions taken:",
-          "Points of unclarity:",
-          "Tests run:",
+          "",
+          "Changes made",
+          "------------",
+          "",
+          "Assumptions",
+          "-----------",
+          "",
+          "Decisions taken",
+          "---------------",
+          "",
+          "Points of unclarity",
+          "-------------------",
+          "",
+          "Tests run",
+          "---------",
         ].join("\n"),
         warningBlock,
       ].join("\n\n")
     );
   });
 
-  it("uses structured thoughts as fallback reason when commitMessage is empty", () => {
+  it("falls back to status message when commitMessage is empty, even when thoughts are present", () => {
     const output: AgentOutput = {
       taskId: task.id,
       status: "blocked",
@@ -103,19 +128,35 @@ describe("DefaultCommitMessageFormatter", () => {
     };
 
     expect(formatter.formatTitle(task, output)).toBe(
-      "TASK-1 [blocked]: Changes made: Blocked on DB migration Assumptions: None Decisions taken: Escalate to infra Points of unclarity: Deployment window unclear Tests run: Investigating rollout"
+      "TASK-1 [blocked]: Task ended with status: blocked"
     );
     expect(formatter.formatBody(task, output)).toBe(
       [
+        "Task ended with status: blocked",
         "---",
         [
           "AI Thoughts",
           "-----------",
-          "Changes made: Blocked on DB migration",
-          "Assumptions: None",
-          "Decisions taken: Escalate to infra",
-          "Points of unclarity: Deployment window unclear",
-          "Tests run: Investigating rollout",
+          "",
+          "Changes made",
+          "------------",
+          "Blocked on DB migration",
+          "",
+          "Assumptions",
+          "-----------",
+          "None",
+          "",
+          "Decisions taken",
+          "---------------",
+          "Escalate to infra",
+          "",
+          "Points of unclarity",
+          "-------------------",
+          "Deployment window unclear",
+          "",
+          "Tests run",
+          "---------",
+          "Investigating rollout",
         ].join("\n"),
         warningBlock,
       ].join("\n\n")

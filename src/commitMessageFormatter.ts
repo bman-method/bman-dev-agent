@@ -26,12 +26,6 @@ export function deriveHumanMessage(task: Task, output: AgentOutput): string {
     return task.title;
   }
 
-  const thoughts = pickThoughts(output);
-  const formattedThoughts = formatThoughts(thoughts);
-  if (hasThoughtContent(thoughts)) {
-    return formattedThoughts;
-  }
-
   return `Task ended with status: ${output.status}`;
 }
 
@@ -78,14 +72,10 @@ export class DefaultCommitMessageFormatter implements CommitMessageFormatter {
     const { title: agentTitle, body: agentBody } = parseCommitMessage(output.commitMessage);
     const humanMessage = agentBody || (agentTitle ? "" : deriveHumanMessage(task, output));
     const thoughts = pickThoughts(output);
-    const thoughtsContent = formatThoughts(thoughts);
     const thoughtsSection = formatThoughtsSection(thoughts);
 
     const sections = [
-      (() => {
-        const normalized = humanMessage.trim();
-        return normalized === thoughtsContent ? "" : normalized;
-      })(),
+      humanMessage.trim(),
       "---",
       thoughtsSection,
       AI_COMMIT_WARNING,
@@ -105,7 +95,9 @@ function pickThoughts(output: AgentOutput): ThoughtFields {
   };
 }
 
-function formatThoughts(thoughts: ThoughtFields): string {
+function formatThoughtsSection(thoughts: ThoughtFields): string {
+  const header = "AI Thoughts\n-----------";
+
   const entries: Array<[string, string]> = [
     ["Changes made", thoughts.changesMade],
     ["Assumptions", thoughts.assumptions],
@@ -114,25 +106,11 @@ function formatThoughts(thoughts: ThoughtFields): string {
     ["Tests run", thoughts.testsRun],
   ];
 
-  return entries
-    .map(([label, content]) => {
-      const trimmed = content.trim();
-      return trimmed ? `${label}: ${trimmed}` : `${label}:`;
-    })
-    .join("\n")
-    .trim();
-}
+  const sections = entries.map(([label, content]) => {
+    const dashes = "-".repeat(label.length);
+    const trimmed = content.trim();
+    return trimmed ? `${label}\n${dashes}\n${trimmed}` : `${label}\n${dashes}`;
+  });
 
-function formatThoughtsSection(thoughts: ThoughtFields): string {
-  const entries = [
-    "AI Thoughts",
-    "-----------",
-    ...formatThoughts(thoughts).split("\n"),
-  ];
-
-  return entries.join("\n");
-}
-
-function hasThoughtContent(thoughts: ThoughtFields): boolean {
-  return Object.values(thoughts).some((value) => value.trim() !== "");
+  return [header, ...sections].join("\n\n");
 }
