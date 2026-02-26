@@ -23,3 +23,5 @@ Points of unclarity
 Tests run
 ---------
 (content)
+
+- [ ] TASK-2: Lets get rid of the function formatThoughts in commitMessageFormatter. Looks like it is not really needed
