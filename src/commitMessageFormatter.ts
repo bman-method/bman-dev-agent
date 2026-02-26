@@ -124,13 +124,23 @@ function formatThoughts(thoughts: ThoughtFields): string {
 }
 
 function formatThoughtsSection(thoughts: ThoughtFields): string {
-  const entries = [
-    "AI Thoughts",
-    "-----------",
-    ...formatThoughts(thoughts).split("\n"),
+  const header = "AI Thoughts\n-----------";
+
+  const entries: Array<[string, string]> = [
+    ["Changes made", thoughts.changesMade],
+    ["Assumptions", thoughts.assumptions],
+    ["Decisions taken", thoughts.decisionsTaken],
+    ["Points of unclarity", thoughts.pointsOfUnclarity],
+    ["Tests run", thoughts.testsRun],
   ];
 
-  return entries.join("\n");
+  const sections = entries.map(([label, content]) => {
+    const dashes = "-".repeat(label.length);
+    const trimmed = content.trim();
+    return trimmed ? `${label}\n${dashes}\n${trimmed}` : `${label}\n${dashes}`;
+  });
+
+  return [header, ...sections].join("\n\n");
 }
 
 function hasThoughtContent(thoughts: ThoughtFields): boolean {
