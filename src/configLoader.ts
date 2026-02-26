@@ -43,6 +43,8 @@ export class DefaultConfigLoader implements ConfigLoader {
     if (!isNonEmptyString(config.outputDir)) {
       throw new Error("outputDir must be a non-empty string.");
     }
+
+    validateRegistryEntries(config.agent.registry);
   }
 }
 
@@ -70,8 +72,20 @@ function buildAgentConfig(rawAgent: unknown): AgentConfig {
   };
 }
 
+const BUILTIN_REGISTRY: Record<string, AgentRegistryEntry> = {
+  codex: {
+    cmd: ["codex", "exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"],
+  },
+  gemini: {
+    cmd: ["gemini", "--approval-mode", "auto_edit"],
+  },
+  claude: {
+    cmd: ["claude", "--allowedTools", "Read,Write,Bash", "--output-format", "json", "-p", "--verbose"],
+  },
+};
+
 function buildRegistry(rawRegistry: unknown): Record<string, AgentRegistryEntry> {
-  const registry: Record<string, AgentRegistryEntry> = {};
+  const registry: Record<string, AgentRegistryEntry> = { ...BUILTIN_REGISTRY };
   if (!isPlainObject(rawRegistry)) {
     return registry;
   }
@@ -139,9 +153,15 @@ function validateAgentConfig(config: AgentConfig): void {
     throw new Error("agent.registry must be an object.");
   }
 
-  const keys = Object.keys(config.registry);
+  if (!(config.default in config.registry)) {
+    throw new Error(`agent.default "${config.default}" is not defined in agent.registry.`);
+  }
+}
+
+function validateRegistryEntries(registry: Record<string, AgentRegistryEntry>): void {
+  const keys = Object.keys(registry);
   for (const key of keys) {
-    const entry = config.registry[key];
+    const entry = registry[key];
     if (!entry || !isNonEmptyStringArray(entry.cmd)) {
       throw new Error(`agent.registry.${key}.cmd must be a non-empty array of strings.`);
     }
