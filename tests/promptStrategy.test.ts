@@ -103,4 +103,15 @@ describe("DefaultPromptStrategy", () => {
 
     expect(prompt).toContain(`Output file:\n.out${path.sep}TASK-5${path.sep}run-123.json`);
   });
+
+  it("places prelude before completed tasks, and completed tasks before the current task", () => {
+    const prompt = new DefaultPromptStrategy().build(buildInput());
+
+    const preludePos = prompt.indexOf("Tasks file prelude:");
+    const completedPos = prompt.indexOf("Completed tasks:");
+    const taskPos = prompt.indexOf("Task:");
+
+    expect(preludePos).toBeLessThan(completedPos);
+    expect(completedPos).toBeLessThan(taskPos);
+  });
 });
