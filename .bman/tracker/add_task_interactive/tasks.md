@@ -14,3 +14,6 @@ Can this be fixed?
 - [x] TASK-3: Visible cursor is out of sync of the actual editing position after using tab.
 When I used "tab", the visible cursor moved 1 step to the right, but it became out of sync comparing to the actual editing positio.
 The same thing happened when I changed the window size.
+
+- [ ] TASK-4: Text wrappig cursor position issue
+When long line of text is typed, when the cursor reaches the end of the window it stays there and the text is typed in the next line.
