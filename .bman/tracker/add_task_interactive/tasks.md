@@ -20,3 +20,5 @@ When long line of text is typed, when the cursor reaches the end of the window i
 
 - [x] TASK-5: Allow file / folder name auto completion
 When the user types @ and starts typing, show auto completion pop up that allows him to choose a file or folder full path out of all the existing files / folders under the current folder
+
+- [ ] TASK-6: In the files auto completion, do not show the full path of the file, just the relative path to the current folder. Also when the file is selected, write the relative path in the editor.
