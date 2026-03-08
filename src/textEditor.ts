@@ -12,7 +12,6 @@ type Cursor = {
 
 const DEFAULT_HEADER = "Enter task content. Ctrl+D to save, Ctrl+C to cancel.";
 const TAB_WIDTH = 8;
-const COMPLETION_LIMIT = 8;
 const COMPLETION_SKIP_DIRS = new Set([".git", "node_modules"]);
 
 type CompletionEntry = {
@@ -121,6 +120,30 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     selectedIndex: 0,
   };
 
+  const cursorScreenRow = (width: number): number => {
+    const headerRows = visualRowsForLine(header, width);
+    let rowsBefore = 0;
+    for (let i = 0; i < cursor.row; i += 1) {
+      rowsBefore += visualRowsForLine(lines[i] ?? "", width);
+    }
+    const cursorVisualCol = visualColumnForIndex(lines[cursor.row] ?? "", cursor.col);
+    const rowOffset = Math.floor(cursorVisualCol / (width > 0 ? width : 1));
+    return headerRows + 1 + rowsBefore + rowOffset;
+  };
+
+  const completionLimit = (matchesLength: number): number => {
+    if (matchesLength === 0) {
+      return 0;
+    }
+    const width = stdout.columns ?? 80;
+    const height = stdout.rows ?? 24;
+    const row = cursorScreenRow(width);
+    const availableRows = Math.max(0, height - row);
+    const maxEntriesBySpace = Math.max(0, availableRows - 1);
+    const desired = Math.max(5, Math.min(maxEntriesBySpace, matchesLength));
+    return Math.min(desired, maxEntriesBySpace);
+  };
+
   const refreshCompletion = () => {
     const line = lines[cursor.row] ?? "";
     const atIndex = line.lastIndexOf("@", Math.max(0, cursor.col - 1));
@@ -141,10 +164,11 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     }
     const query = between;
     const matches = pathIndex.filter((entry) => entry.value.includes(query));
-    completion.active = matches.length > 0;
     completion.startCol = atIndex;
     completion.query = query;
-    completion.matches = matches.slice(0, COMPLETION_LIMIT);
+    const limit = completionLimit(matches.length);
+    completion.matches = matches.slice(0, limit);
+    completion.active = completion.matches.length > 0;
     if (completion.selectedIndex >= completion.matches.length) {
       completion.selectedIndex = 0;
     }
@@ -187,14 +211,9 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
         }
       }
     }
-    const headerRows = visualRowsForLine(header, width);
-    let rowsBefore = 0;
-    for (let i = 0; i < cursor.row; i += 1) {
-      rowsBefore += visualRowsForLine(lines[i] ?? "", width);
-    }
     const cursorVisualCol = visualColumnForIndex(lines[cursor.row] ?? "", cursor.col);
     const rowOffset = Math.floor(cursorVisualCol / (width > 0 ? width : 1));
-    const row = headerRows + 1 + rowsBefore + rowOffset;
+    const row = cursorScreenRow(width);
     const col = (cursorVisualCol % (width > 0 ? width : 1)) + 1;
     output.push(`\x1b[${row};${col}H`);
     stdout.write(output.join(""));

@@ -23,5 +23,5 @@ When the user types @ and starts typing, show auto completion pop up that allows
 
 - [x] TASK-6: In the files auto completion, do not show the full path of the file, just the relative path to the current folder. Also when the file is selected, write the relative path in the editor.
 
-- [ ] TASK-7: The file auto completion list should be the minimum 5, maximum, the height
+- [x] TASK-7: The file auto completion list should be the minimum 5, maximum, the height
 between the cursor y position and the bottom of the window
