@@ -22,7 +22,7 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
 
   const render = () => {
     const output: string[] = [];
-    output.push("\x1b[2J\x1b[H");
+    output.push("\x1b[?25h\x1b[2J\x1b[H");
     output.push(`${header}\n`);
     for (const line of lines) {
       output.push(`${line}\n`);
@@ -190,7 +190,6 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     stdin.setEncoding("utf8");
     stdin.setRawMode(true);
     stdin.resume();
-    stdout.write("\x1b[?25l");
     render();
     stdin.on("data", onData);
   });
