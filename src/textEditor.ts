@@ -47,8 +47,11 @@ const buildPathIndex = (root: string): CompletionEntry[] => {
         continue;
       }
       const fullPath = path.join(current, entry.name);
-      const display = entry.isDirectory() ? `${fullPath}${path.sep}` : fullPath;
-      results.push({ value: fullPath, display });
+      const relativePath = path.relative(root, fullPath) || entry.name;
+      const display = entry.isDirectory()
+        ? `${relativePath}${path.sep}`
+        : relativePath;
+      results.push({ value: relativePath, display });
       if (entry.isDirectory()) {
         stack.push(fullPath);
       }
