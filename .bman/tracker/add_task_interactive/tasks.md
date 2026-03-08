@@ -30,3 +30,5 @@ between the cursor y position and the bottom of the window
 
 - [x] TASK-9: Can we make the height of the auto completion list be lower by 2?
 so it will be max(5, screen_max_y-cursor_y-2)
+
+- [ ] TASK-10: Make the filename auto completion case in-sensitive
