@@ -10,3 +10,7 @@ add task today.
 
 - [x] TASK-2: Unfortunately, I can't see the cursor in the add-task interactive editor.
 Can this be fixed?
+
+- [ ] TASK-3: Visible cursor is out of sync of the actual editing position after using tab.
+When I used "tab", the visible cursor moved 1 step to the right, but it became out of sync comparing to the actual editing positio.
+The same thing happened when I changed the window size.
