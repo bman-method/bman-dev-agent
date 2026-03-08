@@ -10,6 +10,7 @@ import { DefaultPromptStrategy } from "./promptStrategy";
 import { DefaultResultParser } from "./resultParser";
 import { DefaultRunContextFactory } from "./runContextFactory";
 import { DefaultTaskTracker } from "./taskTracker";
+import { openTextEditor } from "./textEditor";
 import {
   CLI,
   CLIOptions,
@@ -62,7 +63,7 @@ export class DefaultCLI implements CLI {
     }
 
     if (options.command === "add-task") {
-      this.handleAddTask(branchName, options);
+      await this.handleAddTask(branchName, options);
       return;
     }
 
@@ -152,10 +153,24 @@ export class DefaultCLI implements CLI {
     return new CLIAgent({ name: agentName, agentConfig: config.agent });
   }
 
-  private handleAddTask(branchName: string, options: CLIOptions): void {
-    const description = options.taskDescription?.trim();
-    if (!description) {
-      throw new UsageError("Task description is required for add-task.");
+  private async handleAddTask(branchName: string, options: CLIOptions): Promise<void> {
+    let title = options.taskDescription?.trim();
+    let description = "";
+    if (!title) {
+      const editorText = await openTextEditor();
+      if (editorText === null) {
+        console.error("Task entry canceled.");
+        process.exitCode = 1;
+        return;
+      }
+      const parsed = parseTaskContent(editorText);
+      if (!parsed.title) {
+        console.error("Task content is required for add-task.");
+        process.exitCode = 1;
+        return;
+      }
+      title = parsed.title;
+      description = parsed.description;
     }
 
     const configLoader = this.overrides.configLoader ?? new DefaultConfigLoader();
@@ -163,7 +178,7 @@ export class DefaultCLI implements CLI {
     configLoader.validate(config);
 
     const taskTracker = this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
-    const task = taskTracker.addTask(description);
+    const task = taskTracker.addTask(title, description);
 
     const resolvedPath = path.resolve(config.tasksFile);
     console.log(`Added task ${task.id} to ${resolvedPath}`);
@@ -301,11 +316,40 @@ Commands:
                   Agent name from agent.registry (built-ins: claude, gemini, codex)
     --push        Push commits after each task (opt-in)
 
-  add-task <description>
+  add-task [description]
                   Append a new open task to the current branch tracker
+                  Launches an interactive editor when description is omitted
 
 Global options:
   --help, -h      Show this help message
 `.trim();
   console.error(usage);
+}
+
+function parseTaskContent(text: string): { title: string; description: string } {
+  const lines = text.split(/\r?\n/);
+  const trimmed = trimEmptyLines(lines);
+  if (trimmed.length === 0) {
+    return { title: "", description: "" };
+  }
+  const title = trimmed[0].trim();
+  const description = normalizeDescription(trimmed.slice(1));
+  return { title, description };
+}
+
+function trimEmptyLines(lines: string[]): string[] {
+  let start = 0;
+  let end = lines.length;
+  while (start < end && lines[start].trim() === "") {
+    start++;
+  }
+  while (end > start && lines[end - 1].trim() === "") {
+    end--;
+  }
+  return lines.slice(start, end);
+}
+
+function normalizeDescription(lines: string[]): string {
+  const trimmed = trimEmptyLines(lines);
+  return trimmed.map((line) => line.trim()).join("\n");
 }

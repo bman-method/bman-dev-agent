@@ -189,4 +189,22 @@ describe("DefaultTaskTracker", () => {
       });
     });
   });
+
+  it("stores the provided description when adding a task", () => {
+    withTempDir((dir) => {
+      const filePath = path.join(dir, "tasks.md");
+      const tracker = new DefaultTaskTracker(filePath);
+
+      const addedTask = tracker.addTask("Has details", "Line one\nLine two");
+
+      expect(addedTask).toEqual({
+        id: "TASK-1",
+        title: "Has details",
+        description: "Line one\nLine two",
+        status: "open",
+      });
+      const saved = parseDocument(fs.readFileSync(filePath, "utf8"));
+      expect(saved.tasks[0].description).toBe("Line one\nLine two");
+    });
+  });
 });

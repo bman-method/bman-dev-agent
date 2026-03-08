@@ -1,9 +1,9 @@
-- [ ] TASK-1: Allow interacive mode for "add-task" command.
+- [x] TASK-1: Allow interacive mode for "add-task" command.
 When add-task is called with no arguments (no task description)
 Open a text based editor which allows to write the task content.
-The editor should be implemented in pure typescript and should not use 
-any NPM deps. 
+The editor should be implemented in pure typescript and should not use
+any NPM deps.
 It should allow easy navigation with arrow keys,
 should support tab and backspace.
-Once the user finishes editing, the task can be added to the tracker as it is usually done with 
+Once the user finishes editing, the task can be added to the tracker as it is usually done with
 add task today.
