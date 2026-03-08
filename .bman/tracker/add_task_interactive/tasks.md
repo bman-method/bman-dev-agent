@@ -7,3 +7,6 @@ It should allow easy navigation with arrow keys,
 should support tab and backspace.
 Once the user finishes editing, the task can be added to the tracker as it is usually done with
 add task today.
+
+- [ ] TASK-2: Unfortunately, I can't see the cursor in the add-task interactive editor.
+Can this be fixed?
