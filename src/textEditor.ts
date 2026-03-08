@@ -43,6 +43,15 @@ const visualColumnForIndex = (line: string, index: number): number => {
   return column;
 };
 
+const visualRowsForLine = (line: string, width: number): number => {
+  const safeWidth = width > 0 ? width : 1;
+  const visualLength = visualColumnForIndex(line, line.length);
+  if (visualLength === 0) {
+    return 1;
+  }
+  return Math.floor((visualLength - 1) / safeWidth) + 1;
+};
+
 export async function openTextEditor(options: Partial<EditorOptions> = {}): Promise<string | null> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error("Interactive editor requires a TTY.");
@@ -55,14 +64,22 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
   const cursor: Cursor = { row: 0, col: 0 };
 
   const render = () => {
+    const width = stdout.columns ?? 80;
     const output: string[] = [];
     output.push("\x1b[?25h\x1b[2J\x1b[H");
     output.push(`${header}\n`);
     for (const line of lines) {
       output.push(`${expandTabs(line)}\n`);
     }
-    const row = cursor.row + 2;
-    const col = visualColumnForIndex(lines[cursor.row] ?? "", cursor.col) + 1;
+    const headerRows = visualRowsForLine(header, width);
+    let rowsBefore = 0;
+    for (let i = 0; i < cursor.row; i += 1) {
+      rowsBefore += visualRowsForLine(lines[i] ?? "", width);
+    }
+    const cursorVisualCol = visualColumnForIndex(lines[cursor.row] ?? "", cursor.col);
+    const rowOffset = Math.floor(cursorVisualCol / (width > 0 ? width : 1));
+    const row = headerRows + 1 + rowsBefore + rowOffset;
+    const col = (cursorVisualCol % (width > 0 ? width : 1)) + 1;
     output.push(`\x1b[${row};${col}H`);
     stdout.write(output.join(""));
   };
