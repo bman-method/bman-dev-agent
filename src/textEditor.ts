@@ -212,7 +212,6 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
       }
     }
     const cursorVisualCol = visualColumnForIndex(lines[cursor.row] ?? "", cursor.col);
-    const rowOffset = Math.floor(cursorVisualCol / (width > 0 ? width : 1));
     const row = cursorScreenRow(width);
     const col = (cursorVisualCol % (width > 0 ? width : 1)) + 1;
     output.push(`\x1b[${row};${col}H`);

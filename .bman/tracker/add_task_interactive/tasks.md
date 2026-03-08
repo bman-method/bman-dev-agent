@@ -25,3 +25,5 @@ When the user types @ and starts typing, show auto completion pop up that allows
 
 - [x] TASK-7: The file auto completion list should be the minimum 5, maximum, the height
 between the cursor y position and the bottom of the window
+
+- [ ] TASK-8: When I write the first characted after the @ everything gets wierd (I see the popup title overriding my text) but after the second character is typed, it gets to a better state.
