@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 type EditorOptions = {
   header: string;
 };
@@ -9,6 +12,50 @@ type Cursor = {
 
 const DEFAULT_HEADER = "Enter task content. Ctrl+D to save, Ctrl+C to cancel.";
 const TAB_WIDTH = 8;
+const COMPLETION_LIMIT = 8;
+const COMPLETION_SKIP_DIRS = new Set([".git", "node_modules"]);
+
+type CompletionEntry = {
+  value: string;
+  display: string;
+};
+
+type CompletionState = {
+  active: boolean;
+  startCol: number;
+  query: string;
+  matches: CompletionEntry[];
+  selectedIndex: number;
+};
+
+const buildPathIndex = (root: string): CompletionEntry[] => {
+  const results: CompletionEntry[] = [];
+  const stack: string[] = [root];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) {
+      continue;
+    }
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory() && COMPLETION_SKIP_DIRS.has(entry.name)) {
+        continue;
+      }
+      const fullPath = path.join(current, entry.name);
+      const display = entry.isDirectory() ? `${fullPath}${path.sep}` : fullPath;
+      results.push({ value: fullPath, display });
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      }
+    }
+  }
+  return results;
+};
 
 const expandTabs = (line: string): string => {
   let column = 0;
@@ -62,6 +109,60 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
   const stdout = process.stdout;
   const lines = [""];
   const cursor: Cursor = { row: 0, col: 0 };
+  const pathIndex = buildPathIndex(process.cwd());
+  const completion: CompletionState = {
+    active: false,
+    startCol: 0,
+    query: "",
+    matches: [],
+    selectedIndex: 0,
+  };
+
+  const refreshCompletion = () => {
+    const line = lines[cursor.row] ?? "";
+    const atIndex = line.lastIndexOf("@", Math.max(0, cursor.col - 1));
+    if (atIndex < 0) {
+      completion.active = false;
+      completion.matches = [];
+      completion.query = "";
+      completion.selectedIndex = 0;
+      return;
+    }
+    const between = line.slice(atIndex + 1, cursor.col);
+    if (between.length === 0 || /\s/.test(between)) {
+      completion.active = false;
+      completion.matches = [];
+      completion.query = "";
+      completion.selectedIndex = 0;
+      return;
+    }
+    const query = between;
+    const matches = pathIndex.filter((entry) => entry.value.includes(query));
+    completion.active = matches.length > 0;
+    completion.startCol = atIndex;
+    completion.query = query;
+    completion.matches = matches.slice(0, COMPLETION_LIMIT);
+    if (completion.selectedIndex >= completion.matches.length) {
+      completion.selectedIndex = 0;
+    }
+  };
+
+  const applyCompletion = () => {
+    if (!completion.active || completion.matches.length === 0) {
+      return;
+    }
+    const selected = completion.matches[completion.selectedIndex];
+    if (!selected) {
+      return;
+    }
+    const line = lines[cursor.row] ?? "";
+    const before = line.slice(0, completion.startCol);
+    const after = line.slice(cursor.col);
+    lines[cursor.row] = `${before}${selected.value}${after}`;
+    cursor.col = completion.startCol + selected.value.length;
+    completion.active = false;
+    completion.matches = [];
+  };
 
   const render = () => {
     const width = stdout.columns ?? 80;
@@ -70,6 +171,18 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     output.push(`${header}\n`);
     for (const line of lines) {
       output.push(`${expandTabs(line)}\n`);
+    }
+    if (completion.active && completion.matches.length > 0) {
+      output.push("\nAutocomplete: ↑/↓ select, Tab insert\n");
+      for (let i = 0; i < completion.matches.length; i += 1) {
+        const entry = completion.matches[i];
+        const selected = i === completion.selectedIndex;
+        if (selected) {
+          output.push(`\x1b[7m${entry.display}\x1b[0m\n`);
+        } else {
+          output.push(`${entry.display}\n`);
+        }
+      }
     }
     const headerRows = visualRowsForLine(header, width);
     let rowsBefore = 0;
@@ -90,6 +203,7 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     const after = line.slice(cursor.col);
     lines[cursor.row] = before + text + after;
     cursor.col += text.length;
+    refreshCompletion();
   };
 
   const insertNewline = () => {
@@ -100,6 +214,7 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     lines.splice(cursor.row + 1, 0, after);
     cursor.row += 1;
     cursor.col = 0;
+    refreshCompletion();
   };
 
   const backspace = () => {
@@ -107,6 +222,7 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
       const line = lines[cursor.row] ?? "";
       lines[cursor.row] = line.slice(0, cursor.col - 1) + line.slice(cursor.col);
       cursor.col -= 1;
+      refreshCompletion();
       return;
     }
     if (cursor.row > 0) {
@@ -117,17 +233,20 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
       lines.splice(cursor.row, 1);
       cursor.row -= 1;
       cursor.col = newCol;
+      refreshCompletion();
     }
   };
 
   const moveLeft = () => {
     if (cursor.col > 0) {
       cursor.col -= 1;
+      refreshCompletion();
       return;
     }
     if (cursor.row > 0) {
       cursor.row -= 1;
       cursor.col = lines[cursor.row]?.length ?? 0;
+      refreshCompletion();
     }
   };
 
@@ -135,11 +254,13 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     const lineLength = lines[cursor.row]?.length ?? 0;
     if (cursor.col < lineLength) {
       cursor.col += 1;
+      refreshCompletion();
       return;
     }
     if (cursor.row < lines.length - 1) {
       cursor.row += 1;
       cursor.col = 0;
+      refreshCompletion();
     }
   };
 
@@ -147,6 +268,7 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     if (cursor.row > 0) {
       cursor.row -= 1;
       cursor.col = Math.min(cursor.col, lines[cursor.row]?.length ?? 0);
+      refreshCompletion();
     }
   };
 
@@ -154,6 +276,7 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     if (cursor.row < lines.length - 1) {
       cursor.row += 1;
       cursor.col = Math.min(cursor.col, lines[cursor.row]?.length ?? 0);
+      refreshCompletion();
     }
   };
 
@@ -165,10 +288,21 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     const command = input[index + 2];
     switch (command) {
       case "A":
-        moveUp();
+        if (completion.active) {
+          completion.selectedIndex = Math.max(0, completion.selectedIndex - 1);
+        } else {
+          moveUp();
+        }
         return index + 3;
       case "B":
-        moveDown();
+        if (completion.active) {
+          completion.selectedIndex = Math.min(
+            completion.matches.length - 1,
+            completion.selectedIndex + 1,
+          );
+        } else {
+          moveDown();
+        }
         return index + 3;
       case "C":
         moveRight();
@@ -219,6 +353,11 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
           continue;
         }
         if (ch === "\r" || ch === "\n") {
+          if (completion.active) {
+            applyCompletion();
+            i += 1;
+            continue;
+          }
           insertNewline();
           i += 1;
           continue;
@@ -229,7 +368,11 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
           continue;
         }
         if (ch === "\t") {
-          insertText("\t");
+          if (completion.active) {
+            applyCompletion();
+          } else {
+            insertText("\t");
+          }
           i += 1;
           continue;
         }

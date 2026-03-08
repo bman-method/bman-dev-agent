@@ -18,5 +18,5 @@ The same thing happened when I changed the window size.
 - [x] TASK-4: Text wrappig cursor position issue
 When long line of text is typed, when the cursor reaches the end of the window it stays there and the text is typed in the next line.
 
-- [ ] TASK-5: Allow file / folder name auto completion
+- [x] TASK-5: Allow file / folder name auto completion
 When the user types @ and starts typing, show auto completion pop up that allows him to choose a file or folder full path out of all the existing files / folders under the current folder
