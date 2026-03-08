@@ -8,6 +8,40 @@ type Cursor = {
 };
 
 const DEFAULT_HEADER = "Enter task content. Ctrl+D to save, Ctrl+C to cancel.";
+const TAB_WIDTH = 8;
+
+const expandTabs = (line: string): string => {
+  let column = 0;
+  let output = "";
+  for (const ch of line) {
+    if (ch === "\t") {
+      const spaces = TAB_WIDTH - (column % TAB_WIDTH);
+      output += " ".repeat(spaces);
+      column += spaces;
+      continue;
+    }
+    output += ch;
+    column += 1;
+  }
+  return output;
+};
+
+const visualColumnForIndex = (line: string, index: number): number => {
+  let column = 0;
+  let offset = 0;
+  for (const ch of line) {
+    if (offset >= index) {
+      break;
+    }
+    if (ch === "\t") {
+      column += TAB_WIDTH - (column % TAB_WIDTH);
+    } else {
+      column += 1;
+    }
+    offset += 1;
+  }
+  return column;
+};
 
 export async function openTextEditor(options: Partial<EditorOptions> = {}): Promise<string | null> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
@@ -25,10 +59,10 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     output.push("\x1b[?25h\x1b[2J\x1b[H");
     output.push(`${header}\n`);
     for (const line of lines) {
-      output.push(`${line}\n`);
+      output.push(`${expandTabs(line)}\n`);
     }
     const row = cursor.row + 2;
-    const col = cursor.col + 1;
+    const col = visualColumnForIndex(lines[cursor.row] ?? "", cursor.col) + 1;
     output.push(`\x1b[${row};${col}H`);
     stdout.write(output.join(""));
   };
@@ -131,12 +165,17 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
   };
 
   return new Promise((resolve) => {
+    const onResize = () => {
+      render();
+    };
+
     const cleanup = () => {
       if (stdin.isTTY) {
         stdin.setRawMode(false);
       }
       stdin.pause();
       stdin.removeListener("data", onData);
+      stdout.removeListener("resize", onResize);
       stdout.write("\x1b[?25h");
       stdout.write("\n");
     };
@@ -192,5 +231,6 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
     stdin.resume();
     render();
     stdin.on("data", onData);
+    stdout.on("resize", onResize);
   });
 }
