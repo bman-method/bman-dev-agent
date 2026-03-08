@@ -28,5 +28,5 @@ between the cursor y position and the bottom of the window
 
 - [x] TASK-8: When I write the first characted after the @ everything gets wierd (I see the popup title overriding my text) but after the second character is typed, it gets to a better state.
 
-- [ ] TASK-9: Can we make the height of the auto completion list be lower by 2?
+- [x] TASK-9: Can we make the height of the auto completion list be lower by 2?
 so it will be max(5, screen_max_y-cursor_y-2)
