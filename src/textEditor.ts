@@ -164,7 +164,10 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
       return;
     }
     const query = between;
-    const matches = pathIndex.filter((entry) => entry.value.includes(query));
+    const normalizedQuery = query.toLowerCase();
+    const matches = pathIndex.filter((entry) =>
+      entry.value.toLowerCase().includes(normalizedQuery),
+    );
     completion.startCol = atIndex;
     completion.query = query;
     const limit = completionLimit(matches.length);
