@@ -5,6 +5,33 @@ type EditorOptions = {
   header: string;
 };
 
+type EditorInput = {
+  isTTY: boolean;
+  setRawMode: (mode: boolean) => void;
+  setEncoding: (encoding: BufferEncoding) => void;
+  resume: () => void;
+  pause: () => void;
+  on: (...args: any[]) => void;
+  removeListener: (...args: any[]) => void;
+};
+
+type EditorOutput = {
+  isTTY: boolean;
+  columns?: number;
+  rows?: number;
+  write: (chunk: string) => boolean;
+  on: (...args: any[]) => void;
+  removeListener: (...args: any[]) => void;
+};
+
+type TextEditorDeps = {
+  stdin: EditorInput;
+  stdout: EditorOutput;
+  cwd: () => string;
+  fs: typeof fs;
+  path: typeof path;
+};
+
 type Cursor = {
   row: number;
   col: number;
@@ -27,7 +54,11 @@ type CompletionState = {
   selectedIndex: number;
 };
 
-const buildPathIndex = (root: string): CompletionEntry[] => {
+const buildPathIndex = (
+  root: string,
+  fsImpl: typeof fs = fs,
+  pathImpl: typeof path = path,
+): CompletionEntry[] => {
   const results: CompletionEntry[] = [];
   const stack: string[] = [root];
   while (stack.length > 0) {
@@ -37,7 +68,7 @@ const buildPathIndex = (root: string): CompletionEntry[] => {
     }
     let entries: fs.Dirent[];
     try {
-      entries = fs.readdirSync(current, { withFileTypes: true });
+      entries = fsImpl.readdirSync(current, { withFileTypes: true });
     } catch {
       continue;
     }
@@ -45,10 +76,10 @@ const buildPathIndex = (root: string): CompletionEntry[] => {
       if (entry.isDirectory() && COMPLETION_SKIP_DIRS.has(entry.name)) {
         continue;
       }
-      const fullPath = path.join(current, entry.name);
-      const relativePath = path.relative(root, fullPath) || entry.name;
+      const fullPath = pathImpl.join(current, entry.name);
+      const relativePath = pathImpl.relative(root, fullPath) || entry.name;
       const display = entry.isDirectory()
-        ? `${relativePath}${path.sep}`
+        ? `${relativePath}${pathImpl.sep}`
         : relativePath;
       results.push({ value: relativePath, display });
       if (entry.isDirectory()) {
@@ -101,17 +132,57 @@ const visualRowsForLine = (line: string, width: number): number => {
   return Math.floor((visualLength - 1) / safeWidth) + 1;
 };
 
-export async function openTextEditor(options: Partial<EditorOptions> = {}): Promise<string | null> {
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+const filterCompletionMatches = (
+  pathIndex: CompletionEntry[],
+  query: string,
+): CompletionEntry[] => {
+  const normalizedQuery = query.toLowerCase();
+  return pathIndex.filter((entry) =>
+    entry.value.toLowerCase().includes(normalizedQuery),
+  );
+};
+
+const computeCompletionLimit = (
+  matchesLength: number,
+  cursorRow: number,
+  height: number,
+): number => {
+  if (matchesLength === 0) {
+    return 0;
+  }
+  const availableRows = Math.max(0, height - cursorRow - 2);
+  const completionOverheadRows = 2;
+  const maxEntriesBySpace = Math.max(0, availableRows - completionOverheadRows);
+  const desired = Math.max(5, Math.min(maxEntriesBySpace, matchesLength));
+  return Math.min(desired, maxEntriesBySpace);
+};
+
+export const textEditorInternals = {
+  buildPathIndex,
+  expandTabs,
+  visualColumnForIndex,
+  visualRowsForLine,
+  filterCompletionMatches,
+  computeCompletionLimit,
+};
+
+type OpenTextEditorOptions = Partial<EditorOptions> & { deps?: Partial<TextEditorDeps> };
+
+export async function openTextEditor(options: OpenTextEditorOptions = {}): Promise<string | null> {
+  const deps = options.deps ?? {};
+  const stdin = deps.stdin ?? process.stdin;
+  const stdout = deps.stdout ?? process.stdout;
+  if (!stdin.isTTY || !stdout.isTTY) {
     throw new Error("Interactive editor requires a TTY.");
   }
 
   const header = options.header ?? DEFAULT_HEADER;
-  const stdin = process.stdin;
-  const stdout = process.stdout;
+  const fsImpl = deps.fs ?? fs;
+  const pathImpl = deps.path ?? path;
+  const cwd = deps.cwd ?? process.cwd;
   const lines = [""];
   const cursor: Cursor = { row: 0, col: 0 };
-  const pathIndex = buildPathIndex(process.cwd());
+  const pathIndex = buildPathIndex(cwd(), fsImpl, pathImpl);
   const completion: CompletionState = {
     active: false,
     startCol: 0,
@@ -132,17 +203,10 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
   };
 
   const completionLimit = (matchesLength: number): number => {
-    if (matchesLength === 0) {
-      return 0;
-    }
     const width = stdout.columns ?? 80;
     const height = stdout.rows ?? 24;
     const row = cursorScreenRow(width);
-    const availableRows = Math.max(0, height - row - 2);
-    const completionOverheadRows = 2;
-    const maxEntriesBySpace = Math.max(0, availableRows - completionOverheadRows);
-    const desired = Math.max(5, Math.min(maxEntriesBySpace, matchesLength));
-    return Math.min(desired, maxEntriesBySpace);
+    return computeCompletionLimit(matchesLength, row, height);
   };
 
   const refreshCompletion = () => {
@@ -164,10 +228,7 @@ export async function openTextEditor(options: Partial<EditorOptions> = {}): Prom
       return;
     }
     const query = between;
-    const normalizedQuery = query.toLowerCase();
-    const matches = pathIndex.filter((entry) =>
-      entry.value.toLowerCase().includes(normalizedQuery),
-    );
+    const matches = filterCompletionMatches(pathIndex, query);
     completion.startCol = atIndex;
     completion.query = query;
     const limit = completionLimit(matches.length);
