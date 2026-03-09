@@ -32,3 +32,9 @@ between the cursor y position and the bottom of the window
 so it will be max(5, screen_max_y-cursor_y-2)
 
 - [x] TASK-10: Make the filename auto completion case in-sensitive
+
+- [ ] TASK-11: Look at all the tasks in the tracker .bman/tracker/add_task_interactive/tasks.md
+And also look at the code of src/textEditor.ts
+And write a test that ensures it works according to all the things we defined.
+
+You can also refactor its code to allow mocking stdin and fs, etc
