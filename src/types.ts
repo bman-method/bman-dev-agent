@@ -43,7 +43,7 @@ export interface TaskTracker {
   markDone(tasks: Task[], taskId: string): Task[];
   markBlocked(tasks: Task[], taskId: string): Task[];
   saveDocument(doc: TaskTrackerDocument): void;
-  addTask(title: string): Task;
+  addTask(title: string, description?: string): Task;
 }
 
 export interface RunContext {

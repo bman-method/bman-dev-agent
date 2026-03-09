@@ -10,13 +10,13 @@ export class DefaultTaskTracker implements TaskTracker {
         return parseDocument(content);
     }
 
-    addTask(title: string): Task {
+    addTask(title: string, description = ""): Task {
         const document = this.loadOrInitializeDocument();
         const nextTaskId = this.getNextTaskId(document.tasks);
         const newTask: Task = {
             id: nextTaskId,
             title,
-            description: "",
+            description,
             status: "open",
         };
         const updatedDocument: TaskTrackerDocument = {
