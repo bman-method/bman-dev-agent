@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { ANSI, applyInverseStyle, cursorTo, screenRefreshSequence } from "./textModeLib";
 
 type EditorOptions = {
   header: string;
@@ -259,7 +260,7 @@ export async function openTextEditor(options: OpenTextEditorOptions = {}): Promi
   const render = () => {
     const width = stdout.columns ?? 80;
     const output: string[] = [];
-    output.push("\x1b[?25h\x1b[2J\x1b[H");
+    output.push(screenRefreshSequence());
     output.push(`${header}\n`);
     for (const line of lines) {
       output.push(`${expandTabs(line)}\n`);
@@ -270,7 +271,7 @@ export async function openTextEditor(options: OpenTextEditorOptions = {}): Promi
         const entry = completion.matches[i];
         const selected = i === completion.selectedIndex;
         if (selected) {
-          output.push(`\x1b[7m${entry.display}\x1b[0m\n`);
+          output.push(`${applyInverseStyle(entry.display)}\n`);
         } else {
           output.push(`${entry.display}\n`);
         }
@@ -279,7 +280,7 @@ export async function openTextEditor(options: OpenTextEditorOptions = {}): Promi
     const cursorVisualCol = visualColumnForIndex(lines[cursor.row] ?? "", cursor.col);
     const row = cursorScreenRow(width);
     const col = (cursorVisualCol % (width > 0 ? width : 1)) + 1;
-    output.push(`\x1b[${row};${col}H`);
+    output.push(cursorTo(row, col));
     stdout.write(output.join(""));
   };
 
@@ -413,7 +414,7 @@ export async function openTextEditor(options: OpenTextEditorOptions = {}): Promi
       stdin.pause();
       stdin.removeListener("data", onData);
       stdout.removeListener("resize", onResize);
-      stdout.write("\x1b[?25h");
+      stdout.write(ANSI.cursorShow);
       stdout.write("\n");
     };
 

@@ -42,7 +42,7 @@ You can also refactor its code to allow mocking stdin and fs, etc
 - [x] TASK-12: There are very few tests in tests/textEditor.test.ts.
 Can we make sure that it covers all the functionality of src/textEditor.ts?
 
-- [ ] TASK-13: Make text editor have clearer code
+- [x] TASK-13: Make text editor have clearer code
 In order to do that, you can separate the basic text mode / cursor functionality to a
 different .ts file (e.g. textModeLib.ts)
 That will have named functions and constants in order to avoid
