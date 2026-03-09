@@ -87,7 +87,7 @@ const BUILTIN_REGISTRY: Record<string, AgentRegistryEntry> = {
     cmd: ["gemini", "--approval-mode", "auto_edit"],
   },
   claude: {
-    cmd: ["claude", "--allowedTools", "Read,Write,Bash", "--output-format", "json", "-p", "--verbose"],
+    cmd: ["claude", "--allowedTools", "Read,Write,Bash,Edit,MultiEdit", "--output-format", "json", "-p", "--verbose"],
   },
 };
 

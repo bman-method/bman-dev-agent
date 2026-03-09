@@ -35,7 +35,7 @@ describe("DefaultConfigLoader", () => {
       expect(config.agent.registry.claude?.cmd).toEqual([
         "claude",
         "--allowedTools",
-        "Read,Write,Bash",
+        "Read,Write,Bash,Edit,MultiEdit",
         "--output-format",
         "json",
         "-p",
