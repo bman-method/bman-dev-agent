@@ -51,6 +51,6 @@ Since all the tests of the text editor are blackbox, they should still be passin
 
 - [x] TASK-14: Fix 2 failing tests
 
-- [ ] TASK-15: We should also get rid of all the  things such as:
+- [x] TASK-15: We should also get rid of all the  things such as:
 - if (ch === "\x04")
 Looks like we still have magic strings that should become constants in src/textModeLib.ts.

@@ -1,4 +1,7 @@
-const ESC = "\x1b";
+export const ESC = "\x1b";
+export const CTRL_C = "\x03";
+export const CTRL_D = "\x04";
+export const BACKSPACE = "\x7f";
 
 export const ANSI = {
   cursorShow: `${ESC}[?25h`,

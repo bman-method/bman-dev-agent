@@ -1,6 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ANSI, applyInverseStyle, cursorTo, screenRefreshSequence } from "./textModeLib";
+import {
+  ANSI,
+  BACKSPACE,
+  CTRL_C,
+  CTRL_D,
+  ESC,
+  applyInverseStyle,
+  cursorTo,
+  screenRefreshSequence,
+} from "./textModeLib";
 
 type EditorOptions = {
   header: string;
@@ -427,15 +436,15 @@ export async function openTextEditor(options: OpenTextEditorOptions = {}): Promi
       let i = 0;
       while (i < data.length) {
         const ch = data[i];
-        if (ch === "\x04") {
+        if (ch === CTRL_D) {
           finish(lines.join("\n"));
           return;
         }
-        if (ch === "\x03") {
+        if (ch === CTRL_C) {
           finish(null);
           return;
         }
-        if (ch === "\x1b") {
+        if (ch === ESC) {
           i = handleEscapeSequence(data, i);
           continue;
         }
@@ -449,7 +458,7 @@ export async function openTextEditor(options: OpenTextEditorOptions = {}): Promi
           i += 1;
           continue;
         }
-        if (ch === "\x7f") {
+        if (ch === BACKSPACE) {
           backspace();
           i += 1;
           continue;
