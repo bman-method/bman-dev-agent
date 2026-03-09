@@ -47,7 +47,9 @@ export class CLIAgent implements CodeAgent {
     }
 
     name: string;
+
     private readonly command: string;
+
     private readonly args: string[];
 
     constructor(private readonly options: CLIAgentOptions = {}) {
