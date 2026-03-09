@@ -54,3 +54,37 @@ Since all the tests of the text editor are blackbox, they should still be passin
 - [x] TASK-15: We should also get rid of all the  things such as:
 - if (ch === "\x04")
 Looks like we still have magic strings that should become constants in src/textModeLib.ts.
+
+- [ ] TASK-16: Add missing tests
+1. **`@` with empty query**
+
+* Typing only `@` should **not activate completion**.
+* Pressing `Tab` after `@` should insert a **tab character**, not apply completion.
+
+2. **Completion cancellation with `Ctrl+C`**
+
+* When autocomplete is active and the user presses `Ctrl+C`, the editor should **cancel and return `null`**.
+
+3. **Multiple `@` mentions in the same line**
+
+* When a line contains multiple `@` tokens, completion should operate on the **token closest to the cursor**.
+
+4. **Completion reset after cursor movement**
+
+* If completion is active and the cursor moves **left/right/up/down**, the completion state should **refresh or deactivate correctly**.
+
+5. **Completion disappears when query becomes invalid**
+
+* If a user types `@abc` and then deletes characters so the query becomes empty or contains whitespace, **completion should deactivate**.
+
+6. **Backspace inside completion query**
+
+* When completion is active and the user presses backspace, the **query should update and matches should refresh**.
+
+7. **Ensure listeners are cleaned up after editor exits**
+
+* After the editor resolves, emitting `resize` or `data` events should **not trigger additional writes or state changes**.
+
+8. **Completion when multiple matches exist**
+
+* Verify that `↑/↓` navigation wraps or clamps correctly and that the **selected match is the one inserted
