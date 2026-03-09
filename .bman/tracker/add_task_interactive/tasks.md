@@ -39,5 +39,5 @@ And write a test that ensures it works according to all the things we defined.
 
 You can also refactor its code to allow mocking stdin and fs, etc
 
-- [ ] TASK-12: There are very few tests in tests/textEditor.test.ts.
+- [x] TASK-12: There are very few tests in tests/textEditor.test.ts.
 Can we make sure that it covers all the functionality of src/textEditor.ts?

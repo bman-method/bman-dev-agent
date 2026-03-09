@@ -33,6 +33,23 @@ class MockStdout extends EventEmitter {
 }
 
 describe("textEditorInternals", () => {
+  it("builds a path index and skips ignored directories", () => {
+    withTempDir((dir) => {
+      fs.mkdirSync(path.join(dir, ".git"));
+      fs.mkdirSync(path.join(dir, "node_modules"));
+      fs.mkdirSync(path.join(dir, "src"));
+      fs.writeFileSync(path.join(dir, "src", "app.ts"), "ok");
+
+      const { buildPathIndex } = textEditorInternals;
+      const index = buildPathIndex(dir, fs, path);
+      const values = index.map((entry) => entry.value);
+
+      expect(values).toContain(path.join("src", "app.ts"));
+      expect(values).not.toContain(path.join(".git"));
+      expect(values).not.toContain(path.join("node_modules"));
+    });
+  });
+
   it("expands tabs and keeps visual columns aligned", () => {
     const { expandTabs, visualColumnForIndex } = textEditorInternals;
 
@@ -44,6 +61,7 @@ describe("textEditorInternals", () => {
   it("wraps visual rows based on rendered width", () => {
     const { visualRowsForLine } = textEditorInternals;
     expect(visualRowsForLine("123456", 5)).toBe(2);
+    expect(visualRowsForLine("", 0)).toBe(1);
   });
 
   it("filters completions case-insensitively with relative paths", () => {
@@ -68,10 +86,114 @@ describe("textEditorInternals", () => {
 
     expect(computeCompletionLimit(2, 5, 20)).toBe(5);
     expect(computeCompletionLimit(20, 10, 15)).toBe(1);
+    expect(computeCompletionLimit(0, 5, 20)).toBe(0);
   });
 });
 
 describe("openTextEditor", () => {
+  it("throws when stdin/stdout are not TTYs", async () => {
+    const stdin = new MockStdin();
+    const stdout = new MockStdout();
+    stdin.isTTY = false;
+
+    await expect(openTextEditor({ deps: { stdin, stdout } })).rejects.toThrow(
+      "Interactive editor requires a TTY.",
+    );
+  });
+
+  it("sets up raw mode and restores terminal on completion", async () => {
+    await new Promise<void>((resolve) => {
+      const stdin = new MockStdin();
+      const stdout = new MockStdout();
+
+      const editorPromise = openTextEditor({ deps: { stdin, stdout } });
+
+      stdin.emit("data", "ok\x04");
+      editorPromise.then((value) => {
+        expect(value).toBe("ok");
+        expect(stdin.setRawMode).toHaveBeenCalledWith(true);
+        expect(stdin.setRawMode).toHaveBeenCalledWith(false);
+        expect(stdin.pause).toHaveBeenCalled();
+        expect(stdout.write).toHaveBeenCalled();
+        resolve();
+      });
+    });
+  });
+
+  it("inserts tabs when no completion is active", async () => {
+    await new Promise<void>((resolve) => {
+      const stdin = new MockStdin();
+      const stdout = new MockStdout();
+
+      const editorPromise = openTextEditor({ deps: { stdin, stdout } });
+
+      stdin.emit("data", "a\tb\x04");
+      editorPromise.then((value) => {
+        expect(value).toBe("a\tb");
+        resolve();
+      });
+    });
+  });
+
+  it("supports cursor movement across lines", async () => {
+    await new Promise<void>((resolve) => {
+      const stdin = new MockStdin();
+      const stdout = new MockStdout();
+
+      const editorPromise = openTextEditor({ deps: { stdin, stdout } });
+
+      stdin.emit("data", "ab\ncd");
+      stdin.emit("data", "\x1b[A");
+      stdin.emit("data", "X");
+      stdin.emit("data", "\x04");
+
+      editorPromise.then((value) => {
+        expect(value).toBe("abX\ncd");
+        resolve();
+      });
+    });
+  });
+
+  it("merges lines on backspace at start of line", async () => {
+    await new Promise<void>((resolve) => {
+      const stdin = new MockStdin();
+      const stdout = new MockStdout();
+
+      const editorPromise = openTextEditor({ deps: { stdin, stdout } });
+
+      stdin.emit("data", "ab\ncd");
+      stdin.emit("data", "\x1b[D\x1b[D");
+      stdin.emit("data", "\x7f");
+      stdin.emit("data", "\x04");
+
+      editorPromise.then((value) => {
+        expect(value).toBe("abcd");
+        resolve();
+      });
+    });
+  });
+
+  it("applies completion on Enter without inserting a newline", async () => {
+    await new Promise<void>((resolve) => {
+      withTempDir((dir) => {
+        fs.writeFileSync(path.join(dir, "file-one.txt"), "ok");
+
+        const stdin = new MockStdin();
+        const stdout = new MockStdout();
+
+        const editorPromise = openTextEditor({
+          deps: { stdin, stdout, cwd: () => dir },
+        });
+
+        stdin.emit("data", "@file\n\x04");
+        editorPromise.then((value) => {
+          expect(value).toBe("file-one.txt");
+          resolve();
+        });
+      });
+    });
+  });
+
   it("inserts the selected completion relative to cwd", async () => {
     await new Promise<void>((resolve) => {
       withTempDir((dir) => {
@@ -89,6 +211,32 @@ describe("openTextEditor", () => {
         stdin.emit("data", "@targ\t\x04");
         editorPromise.then((value) => {
           expect(value).toBe(path.join("docs", "Target.md"));
+          resolve();
+        });
+      });
+    });
+  });
+
+  it("cycles completion selection with arrow keys", async () => {
+    await new Promise<void>((resolve) => {
+      withTempDir((dir) => {
+        fs.writeFileSync(path.join(dir, "first.txt"), "ok");
+        fs.writeFileSync(path.join(dir, "file-two.txt"), "ok");
+
+        const stdin = new MockStdin();
+        const stdout = new MockStdout();
+        const { buildPathIndex, filterCompletionMatches } = textEditorInternals;
+        const index = buildPathIndex(dir, fs, path);
+        const matches = filterCompletionMatches(index, "fi");
+        const expected = matches[1]?.value ?? matches[0]?.value ?? "";
+
+        const editorPromise = openTextEditor({
+          deps: { stdin, stdout, cwd: () => dir },
+        });
+
+        stdin.emit("data", "@fi\x1b[B\t\x04");
+        editorPromise.then((value) => {
+          expect(value).toBe(expected);
           resolve();
         });
       });
@@ -119,6 +267,23 @@ describe("openTextEditor", () => {
           expect(value).toBeNull();
           resolve();
         });
+      });
+    });
+  });
+
+  it("refreshes display on resize events", async () => {
+    await new Promise<void>((resolve) => {
+      const stdin = new MockStdin();
+      const stdout = new MockStdout();
+      const editorPromise = openTextEditor({ deps: { stdin, stdout } });
+
+      stdout.emit("resize");
+      stdin.emit("data", "\x03");
+
+      editorPromise.then((value) => {
+        expect(value).toBeNull();
+        expect(stdout.write).toHaveBeenCalled();
+        resolve();
       });
     });
   });
