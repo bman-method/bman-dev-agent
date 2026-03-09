@@ -48,3 +48,5 @@ different .ts file (e.g. textModeLib.ts)
 That will have named functions and constants in order to avoid
 code such as: output.push(`\x1b[${row};${col}H`);
 Since all the tests of the text editor are blackbox, they should still be passing post refactor
+
+- [ ] TASK-14: Fix 2 failing tests
