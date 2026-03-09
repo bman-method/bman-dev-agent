@@ -178,7 +178,8 @@ export class DefaultCLI implements CLI {
     configLoader.validate(config);
 
     const taskTracker = this.overrides.taskTracker ?? new DefaultTaskTracker(config.tasksFile);
-    const task = taskTracker.addTask(title, description);
+    const task =
+      description.length > 0 ? taskTracker.addTask(title, description) : taskTracker.addTask(title);
 
     const resolvedPath = path.resolve(config.tasksFile);
     console.log(`Added task ${task.id} to ${resolvedPath}`);
