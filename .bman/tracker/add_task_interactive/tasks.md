@@ -55,7 +55,7 @@ Since all the tests of the text editor are blackbox, they should still be passin
 - if (ch === "\x04")
 Looks like we still have magic strings that should become constants in src/textModeLib.ts.
 
-- [ ] TASK-16: Add missing tests
+- [x] TASK-16: Add missing tests
 1. **`@` with empty query**
 
 * Typing only `@` should **not activate completion**.

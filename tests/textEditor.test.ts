@@ -135,6 +135,25 @@ describe("openTextEditor", () => {
     });
   });
 
+  it("does not activate completion for an empty @ query", async () => {
+    await new Promise<void>((resolve) => {
+      const stdin = new MockStdin();
+      const stdout = new MockStdout();
+
+      const editorPromise = openTextEditor({ deps: { stdin, stdout } });
+
+      stdin.emit("data", "@");
+      const lastWrite = stdout.writes[stdout.writes.length - 1] ?? "";
+      expect(lastWrite.includes("Autocomplete")).toBe(false);
+
+      stdin.emit("data", "\t\x04");
+      editorPromise.then((value) => {
+        expect(value).toBe("@\t");
+        resolve();
+      });
+    });
+  });
+
   it("supports cursor movement across lines", async () => {
     await new Promise<void>((resolve) => {
       const stdin = new MockStdin();
@@ -150,6 +169,164 @@ describe("openTextEditor", () => {
       editorPromise.then((value) => {
         expect(value).toBe("abX\ncd");
         resolve();
+      });
+    });
+  });
+
+  it("cancels with Ctrl+C while completion is active", async () => {
+    await new Promise<void>((resolve) => {
+      withTempDir((dir) => {
+        fs.writeFileSync(path.join(dir, "match.txt"), "ok");
+
+        const stdin = new MockStdin();
+        const stdout = new MockStdout();
+
+        const editorPromise = openTextEditor({
+          deps: { stdin, stdout, cwd: () => dir },
+        });
+
+        stdin.emit("data", "@ma");
+        stdin.emit("data", "\x03");
+        editorPromise.then((value) => {
+          expect(value).toBeNull();
+          resolve();
+        });
+      });
+    });
+  });
+
+  it("uses the @ token closest to the cursor for completion", async () => {
+    await new Promise<void>((resolve) => {
+      withTempDir((dir) => {
+        fs.writeFileSync(path.join(dir, "file-one.txt"), "ok");
+
+        const stdin = new MockStdin();
+        const stdout = new MockStdout();
+
+        const editorPromise = openTextEditor({
+          deps: { stdin, stdout, cwd: () => dir },
+        });
+
+        stdin.emit("data", "@first @fi\t\x04");
+        editorPromise.then((value) => {
+          expect(value).toBe(`@first ${"file-one.txt"}`);
+          resolve();
+        });
+      });
+    });
+  });
+
+  it("refreshes completion state after cursor moves", async () => {
+    await new Promise<void>((resolve) => {
+      withTempDir((dir) => {
+        fs.writeFileSync(path.join(dir, "file-one.txt"), "ok");
+
+        const stdin = new MockStdin();
+        const stdout = new MockStdout();
+
+        const editorPromise = openTextEditor({
+          deps: { stdin, stdout, cwd: () => dir },
+        });
+
+        stdin.emit("data", "@fi");
+        stdin.emit("data", "\x1b[D\x1b[D\x1b[D");
+        stdin.emit("data", "\t\x04");
+        editorPromise.then((value) => {
+          expect(value).toBe(`\t@fi`);
+          resolve();
+        });
+      });
+    });
+  });
+
+  it("deactivates completion when the query becomes invalid", async () => {
+    await new Promise<void>((resolve) => {
+      withTempDir((dir) => {
+        fs.writeFileSync(path.join(dir, "alpha.txt"), "ok");
+
+        const stdin = new MockStdin();
+        const stdout = new MockStdout();
+
+        const editorPromise = openTextEditor({
+          deps: { stdin, stdout, cwd: () => dir },
+        });
+
+        stdin.emit("data", "@a");
+        stdin.emit("data", "\x7f");
+        stdin.emit("data", "\t\x04");
+        editorPromise.then((value) => {
+          expect(value).toBe("@\t");
+          resolve();
+        });
+      });
+    });
+  });
+
+  it("refreshes completion matches after backspacing in the query", async () => {
+    await new Promise<void>((resolve) => {
+      withTempDir((dir) => {
+        fs.writeFileSync(path.join(dir, "alpha.txt"), "ok");
+
+        const stdin = new MockStdin();
+        const stdout = new MockStdout();
+
+        const editorPromise = openTextEditor({
+          deps: { stdin, stdout, cwd: () => dir },
+        });
+
+        stdin.emit("data", "@az");
+        stdin.emit("data", "\x7f");
+        stdin.emit("data", "\t\x04");
+        editorPromise.then((value) => {
+          expect(value).toBe("alpha.txt");
+          resolve();
+        });
+      });
+    });
+  });
+
+  it("does not react to events after the editor exits", async () => {
+    await new Promise<void>((resolve) => {
+      const stdin = new MockStdin();
+      const stdout = new MockStdout();
+      const editorPromise = openTextEditor({ deps: { stdin, stdout } });
+
+      stdin.emit("data", "ok\x04");
+      editorPromise.then((value) => {
+        expect(value).toBe("ok");
+        const writeCount = stdout.writes.length;
+
+        stdout.emit("resize");
+        stdin.emit("data", "ignored");
+
+        expect(stdout.writes.length).toBe(writeCount);
+        resolve();
+      });
+    });
+  });
+
+  it("clamps completion navigation at the list bounds", async () => {
+    await new Promise<void>((resolve) => {
+      withTempDir((dir) => {
+        fs.writeFileSync(path.join(dir, "alpha.txt"), "ok");
+        fs.writeFileSync(path.join(dir, "file-two.txt"), "ok");
+
+        const stdin = new MockStdin();
+        const stdout = new MockStdout();
+        const { buildPathIndex, filterCompletionMatches } = textEditorInternals;
+        const index = buildPathIndex(dir, fs, path);
+        const matches = filterCompletionMatches(index, "f");
+        const expected = matches[matches.length - 1]?.value ?? "";
+
+        const editorPromise = openTextEditor({
+          deps: { stdin, stdout, cwd: () => dir },
+        });
+
+        stdin.emit("data", "@f\x1b[B\x1b[B\x1b[B\t\x04");
+        editorPromise.then((value) => {
+          expect(value).toBe(expected);
+          resolve();
+        });
       });
     });
   });
